@@ -1,0 +1,147 @@
+﻿@page "/ListaFacturas"
+@using facturas.Components.Data
+@using FacturaModel = facturas.Components.Data.Facturas
+@using Microsoft.AspNetCore.Components
+@inject ServicioFacturas ServicioFacturas
+@rendermode InteractiveServer
+
+<style>
+   
+    .seccion-baja {
+        border: 1px solid black;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #ffffff;
+    }
+
+    .tabla-registro {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+        .tabla-registro th, .tabla-registro td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .tabla-registro th {
+            background-color: #dddddd;
+            font-weight: normal;
+        }
+
+    .pie-tabla {
+        font-weight: bold;
+        text-align: right;
+        padding: 5px 0;
+        border-top: 2px solid black;
+        margin-top: 5px;
+        font-size: 1.1em;
+    }
+
+    .btn-simple {
+        background-color: #90a4ae;
+        color: black;
+        border: 1px solid #455a64;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .btn-eliminar-simple {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+    }
+</style>
+
+<h1>Historial de Facturas Guardadas</h1>
+
+@if (facturas == null)
+{
+    <p>Cargando registros...</p>
+}
+else
+{
+    <div style="text-align: center; margin-bottom: 20px;">
+        <button @onclick='() => Navegacion.NavigateTo("/Facturas")' class="btn-simple" style="background-color: #007bff; color: white; padding: 10px 20px;">
+            Volver a Crear Factura
+        </button>
+    </div>
+
+    @if (facturas.Count == 0)
+    {
+        <p>No hay facturas registradas en el sistema.</p>
+    }
+    else
+    {
+        @foreach (var f in facturas)
+        {
+            <div class="seccion-baja" style="background-color: #f7f7f7;">
+                <div style="border-bottom: 1px dashed #666; padding-bottom: 5px; margin-bottom: 10px;">
+                    <h4 style="margin: 0;">Factura ID: #@f.Id</h4>
+                    <p style="margin: 5px 0 0 0;">Cliente: <strong>@f.Cliente</strong></p>
+                    <p style="margin: 0;">Fecha: <strong>@f.Fecha.ToShortDateString()</strong></p>
+                </div>
+
+                <table class="tabla-registro">
+                    <thead>
+                        <tr>
+                            <th style="width: 50%;">Artículo</th>
+                            <th style="width: 15%;">Cant.</th>
+                            <th style="width: 15%;">Precio</th>
+                            <th style="width: 20%;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in f.Articulos)
+                        {
+                            <tr>
+                                <td>@a.Nombre</td>
+                                <td>@a.Cantidad</td>
+                                <td>@a.Precio.ToString("C2")</td>
+                                <td>@a.Subtotal.ToString("C2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+
+                <div class="pie-tabla">
+                    TOTAL: $@f.Total.ToString("C2")
+                </div>
+
+                <button @onclick="() => EliminarFactura(f)" class="btn-simple btn-eliminar-simple" style="margin-top: 10px;">Eliminar Factura</button>
+            </div>
+        }
+    }
+}
+
+@code {
+    private List<FacturaModel> facturas;
+
+    [Inject]
+    public NavigationManager Navegacion { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            facturas = await ServicioFacturas.ObtenerFacturas();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar facturas: {ex.Message}");
+            facturas = new List<FacturaModel>();
+        }
+    }
+
+    private async Task EliminarFactura(FacturaModel f)
+    {
+        await ServicioFacturas.EliminarFactura(f);
+        facturas = await ServicioFacturas.ObtenerFacturas();
+        StateHasChanged();
+    }
+}
