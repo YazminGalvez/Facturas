@@ -69,6 +69,14 @@
 
 <h1>Historial de Facturas Guardadas</h1>
 
+<div class="seccion-baja" style="display: flex; gap: 10px; align-items: center;">
+    <label>Filtrar por Cliente:</label>
+
+    <input type="text" @bind="filtroCliente" @oninput="FiltrarFacturas" class="campo-texto" style="width: 300px;" />
+
+    <button @onclick="LimpiarFiltro" class="btn-simple">Limpiar</button>
+</div>
+
 @if (facturas == null)
 {
     <p>Cargando registros...</p>
@@ -81,19 +89,19 @@ else
         </button>
     </div>
 
-    @if (facturas.Count == 0) 
+    @if (facturasFiltradas.Count == 0)
     {
-        <p>No hay facturas registradas en el sistema.</p>
+        <p>No hay facturas que coincidan con el filtro o el sistema está vacío.</p>
     }
     else
     {
-        @foreach (var f in facturas)
+        @foreach (var f in facturasFiltradas)
         {
             <div class="seccion-baja" style="background-color: #f7f7f7;">
                 <div style="border-bottom: 1px dashed #666; padding-bottom: 5px; margin-bottom: 10px;">
                     <h4 style="margin: 0;">
                         Factura ID:
-                      
+                        
                         <a @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{f.Id}")' class="enlace-detalle">
                             #@f.Id
                         </a>
@@ -114,29 +122,65 @@ else
 
 @code {
     private List<FacturaModel> facturas;
+    private List<FacturaModel> facturasFiltradas;
+    private string filtroCliente = string.Empty;
 
+    
     [Inject]
     public NavigationManager Navegacion { get; set; }
 
     [Inject]
     public ServicioFacturas ServicioFacturas { get; set; }
+
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             facturas = await ServicioFacturas.ObtenerFacturas();
+            AplicarFiltro();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"FATAL ERROR: Fallo la conexion/carga inicial de la DB. Verifique Program.cs o permisos. Detalles: {ex.Message}");
+            Console.WriteLine($"FATAL ERROR: Falló la conexión/carga inicial de la DB. Verifique Program.cs o permisos. Detalles: {ex.Message}");
             facturas = new List<FacturaModel>();
+            facturasFiltradas = new List<FacturaModel>();
         }
+    }
+
+
+    private void FiltrarFacturas(ChangeEventArgs e)
+    {
+        filtroCliente = e.Value?.ToString() ?? string.Empty;
+        AplicarFiltro();
+    }
+
+    private void AplicarFiltro()
+    {
+        if (string.IsNullOrWhiteSpace(filtroCliente))
+        {
+            facturasFiltradas = facturas;
+        }
+        else
+        {
+            facturasFiltradas = facturas
+                .Where(f => f.Cliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
+        StateHasChanged();
+    }
+
+
+    private void LimpiarFiltro()
+    {
+        filtroCliente = string.Empty;
+        AplicarFiltro();
     }
 
     private async Task EliminarFactura(FacturaModel f)
     {
         await ServicioFacturas.EliminarFactura(f);
         facturas = await ServicioFacturas.ObtenerFacturas();
-        StateHasChanged(); 
+        AplicarFiltro();
     }
 }
