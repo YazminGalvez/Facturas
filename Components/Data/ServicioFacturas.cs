@@ -37,6 +37,31 @@ namespace facturas.Components.Data
             return lista;
         }
 
+        public async Task<Facturas> ObtenerFacturaPorId(int id)
+        {
+            Facturas f = null;
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+
+            var cmd = cx.CreateCommand();
+            cmd.CommandText = "SELECT id, fecha, cliente FROM facturas WHERE id = $id";
+            cmd.Parameters.AddWithValue("$id", id);
+
+            using var rd = await cmd.ExecuteReaderAsync();
+            if (await rd.ReadAsync())
+            {
+                f = new Facturas
+                {
+                    Id = rd.GetInt32(0),
+                    Fecha = DateTime.Parse(rd.GetString(1)),
+                    Cliente = rd.GetString(2)
+                };
+                f.Articulos = await ObtenerArticulos(f.Id);
+            }
+
+            return f;
+        }
+
         private async Task<List<Articulos>> ObtenerArticulos(int facturaId)
         {
             var lista = new List<Articulos>();
@@ -83,7 +108,6 @@ namespace facturas.Components.Data
             }
             else
             {
-        
                 throw new InvalidOperationException("Error al guardar la factura. La base de datos no devolvió un ID.");
             }
 
