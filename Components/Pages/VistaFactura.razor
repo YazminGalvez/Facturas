@@ -1,4 +1,5 @@
 ﻿@page "/Facturas"
+@page "/Facturas/{FacturaId:int}" 
 @using facturas.Components.Data
 @using FacturaModel = facturas.Components.Data.Facturas
 @using ArticuloModel = facturas.Components.Data.Articulos
@@ -8,12 +9,12 @@
 
 <style>
     body {
-        font-family: 'Times New Roman', serif; 
+        font-family: 'Times New Roman', serif;
         background-color: #fcfcfc; 
     }
 
     .seccion-baja {
-        border: 1px solid black; 
+        border: 1px solid black;
         padding: 15px;
         margin-bottom: 20px;
         background-color: #ffffff;
@@ -44,7 +45,7 @@
         }
 
         .tabla-registro th {
-            background-color: #dddddd; 
+            background-color: #dddddd;
             font-weight: normal;
         }
 
@@ -56,7 +57,7 @@
     }
 
     .btn-simple {
-        background-color: #90a4ae; 
+        background-color: #90a4ae;
         color: black;
         border: 1px solid #455a64;
         padding: 6px 10px;
@@ -69,6 +70,19 @@
         color: white;
         border: 1px solid #388e3c;
         font-weight: bold;
+    }
+    
+    .btn-actualizar {
+        background-color: #ff9800;
+        color: black;
+        border: 1px solid #e65100;
+        font-weight: bold;
+    }
+    
+    .btn-cancelar {
+        background-color: #f44336; 
+        color: white;
+        border: 1px solid #d32f2f;
     }
 
     .msg-error {
@@ -90,10 +104,11 @@
     }
 </style>
 
-<h1>Sistema Facturación</h1>
+
+<h1>@((estaEditandoFactura) ? $"Modificando Factura #{FacturaId}" : "Sistema Facturación")</h1>
 
 <div class="seccion-baja">
-    <h3>Crear Nueva Factura</h3>
+    <h3>@((estaEditandoFactura) ? "Editar Detalles de Factura" : "Crear Nueva Factura")</h3>
 
     <div class="input-grupo">
         <label style="display: block; font-weight: bold;">Fecha:</label>
@@ -110,10 +125,11 @@
     <table class="tabla-registro">
         <thead>
             <tr>
-                <th style="width: 50%;">Descripción</th>
-                <th style="width: 15%;">Cant.</th>
+                <th style="width: 45%;">Descripción</th>
+                <th style="width: 10%;">Cant.</th>
                 <th style="width: 15%;">Precio Unitario</th>
                 <th style="width: 20%;">Subtotal</th>
+                <th style="width: 10%;">Acción</th> 
             </tr>
         </thead>
         <tbody>
@@ -124,6 +140,11 @@
                     <td>@a.Cantidad</td>
                     <td>@a.Precio.ToString("C2")</td>
                     <td>@a.Subtotal.ToString("C2")</td>
+                    <td>
+                       
+                        <button @onclick='() => PrepararEdicion(a)' class="btn-simple" style="padding: 2px 4px; font-size: 0.8em; margin-right: 5px;">Editar</button>
+                        <button @onclick='() => EliminarArticuloTemp(a)' class="btn-simple btn-cancelar" style="padding: 2px 4px; font-size: 0.8em;">Eliminar</button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -136,11 +157,24 @@
         </div>
     }
 
+   
+    <h4 style="margin-top: 20px;">@((indiceArticuloEditando != -1) ? $"Editando: {articuloActual.Nombre}" : "Añadir Nuevo Artículo")</h4>
     <div class="fila-articulos">
-        <input placeholder="Artículo" @bind="nuevoArticulo.Nombre" class="campo-texto" style="flex-basis: 40%;" />
-        <input type="number" min="1" placeholder="Cant." @bind="nuevoArticulo.Cantidad" class="campo-texto" style="flex-basis: 15%;" />
-        <input type="number" step="0.01" placeholder="Precio" @bind="nuevoArticulo.Precio" class="campo-texto" style="flex-basis: 20%;" />
-        <button @onclick="AgregarArticuloTemp" class="btn-simple" style="flex-basis: 25%;">Agregar</button>
+     
+        <input placeholder="Artículo" @bind="articuloActual.Nombre" class="campo-texto" style="flex-basis: 40%;" />
+        <input type="number" min="1" placeholder="Cant." @bind="articuloActual.Cantidad" class="campo-texto" style="flex-basis: 15%;" />
+        <input type="number" step="0.01" placeholder="Precio" @bind="articuloActual.Precio" class="campo-texto" style="flex-basis: 20%;" />
+        
+        <button @onclick="AgregarOActualizarArticulo" 
+                class="btn-simple @((indiceArticuloEditando != -1) ? "btn-actualizar" : "")" 
+                style="flex-basis: 15%; white-space: nowrap;">
+            @((indiceArticuloEditando != -1) ? "Actualizar" : "Agregar")
+        </button>
+
+        @if (indiceArticuloEditando != -1)
+        {
+            <button @onclick="CancelarEdicionArticulo" class="btn-simple btn-cancelar" style="flex-basis: 10%;">Cancelar</button>
+        }
     </div>
 
     @if (!string.IsNullOrWhiteSpace(mensajeError))
@@ -148,7 +182,12 @@
         <p class="msg-error">! @mensajeError</p>
     }
 
-    <button @onclick="GuardarFactura" class="btn-simple btn-guardar" style="width: 100%; margin-top: 20px; padding: 10px;">GUARDAR FACTURA FINAL</button>
+   
+    <button @onclick="GuardarFactura" 
+            class="btn-simple @((estaEditandoFactura) ? "btn-actualizar" : "btn-guardar")" 
+            style="width: 100%; margin-top: 20px; padding: 10px;">
+        @((estaEditandoFactura) ? "ACTUALIZAR FACTURA FINAL" : "GUARDAR FACTURA FINAL")
+    </button>
 </div>
 
 <hr style="border-top: 1px solid #999; margin: 25px 0;" />
@@ -161,15 +200,60 @@
 
 
 @code {
+    [Parameter]
+    public int FacturaId { get; set; } = 0; 
+
     private FacturaModel nuevaFactura = new() { Fecha = DateTime.Now.Date };
-    private ArticuloModel nuevoArticulo = new();
+    
+    private ArticuloModel articuloActual = new(); 
+    
     private List<ArticuloModel> articulosTemp = new();
     private string mensajeError = string.Empty;
+    
+    private int indiceArticuloEditando = -1;
+
+    private bool estaEditandoFactura => FacturaId != 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (estaEditandoFactura)
+        {
+            try
+            {
+                var facturaParaEditar = await ServicioFacturas.ObtenerFacturaPorId(FacturaId);
+                if (facturaParaEditar != null)
+                {      
+                    nuevaFactura.Id = facturaParaEditar.Id;
+                    nuevaFactura.Fecha = facturaParaEditar.Fecha;
+                    nuevaFactura.Cliente = facturaParaEditar.Cliente;
+                  
+                    articulosTemp = new List<ArticuloModel>(facturaParaEditar.Articulos);
+                }
+                else
+                {
+                    mensajeError = $"Factura con ID {FacturaId} no encontrada.";
+                    FacturaId = 0;
+                }
+            }
+            catch (Exception ex)
+            {
+                mensajeError = $"Error al cargar la factura para edición: {ex.Message}";
+                FacturaId = 0;
+            }
+        }
+
+        articuloActual = new ArticuloModel();
+    }
+
 
     private async Task GuardarFactura()
     {
-        mensajeError = string.Empty;
+        if(indiceArticuloEditando != -1)
+        {
+            CancelarEdicionArticulo();
+        }
 
+        mensajeError = string.Empty;
         if (string.IsNullOrWhiteSpace(nuevaFactura.Cliente))
         {
             mensajeError = "El campo 'Cliente' es obligatorio.";
@@ -183,17 +267,17 @@
         {
             try
             {
-                nuevaFactura.Articulos = new List<ArticuloModel>(articulosTemp);
+                nuevaFactura.Articulos = articulosTemp;
 
-                await ServicioFacturas.AgregarFactura(nuevaFactura);
-
-              
+                if (estaEditandoFactura)
+                {
+                    await ServicioFacturas.ActualizarFactura(nuevaFactura);
+                }
+                else
+                {
+                    await ServicioFacturas.AgregarFactura(nuevaFactura);
+                }
                 Navegacion.NavigateTo("/ListaFacturas");
-
-               
-                nuevaFactura = new FacturaModel() { Fecha = DateTime.Now.Date };
-                nuevoArticulo = new ArticuloModel();
-                articulosTemp = new List<ArticuloModel>();
             }
             catch (InvalidOperationException ex)
             {
@@ -208,22 +292,64 @@
         }
     }
 
-    private void AgregarArticuloTemp()
+    private void AgregarOActualizarArticulo()
     {
         mensajeError = string.Empty;
-        if (string.IsNullOrWhiteSpace(nuevoArticulo.Nombre) || nuevoArticulo.Cantidad <= 0 || nuevoArticulo.Precio <= 0)
+        if (string.IsNullOrWhiteSpace(articuloActual.Nombre) || articuloActual.Cantidad <= 0 || articuloActual.Precio <= 0)
         {
             mensajeError = "Debe especificar un nombre, cantidad (>0) y precio (>0) para el artículo.";
         }
         else
         {
-            articulosTemp.Add(new ArticuloModel
+            if (indiceArticuloEditando != -1)
             {
-                Nombre = nuevoArticulo.Nombre,
-                Cantidad = nuevoArticulo.Cantidad,
-                Precio = nuevoArticulo.Precio
-            });
-            nuevoArticulo = new ArticuloModel();
+                var articuloOriginal = articulosTemp[indiceArticuloEditando];
+                articuloOriginal.Nombre = articuloActual.Nombre;
+                articuloOriginal.Cantidad = articuloActual.Cantidad;
+                articuloOriginal.Precio = articuloActual.Precio;
+                
+                CancelarEdicionArticulo(); 
+            }
+            else
+            {
+                articulosTemp.Add(new ArticuloModel
+                {
+                    Nombre = articuloActual.Nombre,
+                    Cantidad = articuloActual.Cantidad,
+                    Precio = articuloActual.Precio
+                });
+                articuloActual = new ArticuloModel(); 
+            }
+            StateHasChanged();
         }
+    }
+
+    private void PrepararEdicion(ArticuloModel articulo)
+    { 
+        indiceArticuloEditando = articulosTemp.IndexOf(articulo);
+        articuloActual = new ArticuloModel 
+        { 
+            Nombre = articulo.Nombre, 
+            Cantidad = articulo.Cantidad, 
+            Precio = articulo.Precio 
+        };
+        mensajeError = string.Empty;
+    }
+
+    private void CancelarEdicionArticulo()
+    {
+        indiceArticuloEditando = -1;
+        articuloActual = new ArticuloModel();
+        mensajeError = string.Empty;
+    }
+    
+    private void EliminarArticuloTemp(ArticuloModel articulo)
+    {
+        articulosTemp.Remove(articulo);
+        if (articuloActual.Nombre == articulo.Nombre)
+        {
+            CancelarEdicionArticulo();
+        }
+        StateHasChanged();
     }
 }

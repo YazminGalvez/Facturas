@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Linq; // Necesario para .Sum()
 
 namespace facturas.Components.Data
 {
@@ -93,27 +94,46 @@ namespace facturas.Components.Data
         {
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
+            using var transaction = cx.BeginTransaction();
 
-            var cmd = cx.CreateCommand();
-            cmd.CommandText = "INSERT INTO facturas(fecha, cliente) VALUES($fecha, $cliente); SELECT last_insert_rowid();";
-            cmd.Parameters.AddWithValue("$fecha", f.Fecha.ToString("yyyy-MM-dd"));
-            cmd.Parameters.AddWithValue("$cliente", f.Cliente);
-
-            object result = await cmd.ExecuteScalarAsync();
-
-            if (result != null && result != DBNull.Value)
+            try
             {
-                var id = (long)result;
-                f.Id = (int)id;
+                var cmd = cx.CreateCommand();
+                cmd.Transaction = transaction;
+                cmd.CommandText = "INSERT INTO facturas(fecha, cliente) VALUES($fecha, $cliente); SELECT last_insert_rowid();";
+                cmd.Parameters.AddWithValue("$fecha", f.Fecha.ToString("yyyy-MM-dd"));
+                cmd.Parameters.AddWithValue("$cliente", f.Cliente);
+
+                object result = await cmd.ExecuteScalarAsync();
+
+                if (result != null && result != DBNull.Value)
+                {
+                    var id = (long)result;
+                    f.Id = (int)id;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Error al guardar la factura. La base de datos no devolvió un ID.");
+                }
+
+                foreach (var a in f.Articulos)
+                {
+                    var cmdArticulo = cx.CreateCommand();
+                    cmdArticulo.Transaction = transaction;
+                    cmdArticulo.CommandText = "INSERT INTO articulos(facturaId, nombre, cantidad, precio) VALUES($facturaId, $nombre, $cantidad, $precio)";
+                    cmdArticulo.Parameters.AddWithValue("$facturaId", f.Id);
+                    cmdArticulo.Parameters.AddWithValue("$nombre", a.Nombre);
+                    cmdArticulo.Parameters.AddWithValue("$cantidad", a.Cantidad);
+                    cmdArticulo.Parameters.AddWithValue("$precio", a.Precio);
+                    await cmdArticulo.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
             }
-            else
+            catch
             {
-                throw new InvalidOperationException("Error al guardar la factura. La base de datos no devolvió un ID.");
-            }
-
-            foreach (var a in f.Articulos)
-            {
-                await AgregarArticulo(f.Id, a);
+                transaction.Rollback();
+                throw;
             }
         }
 
@@ -136,16 +156,81 @@ namespace facturas.Components.Data
         {
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
+            using var transaction = cx.BeginTransaction();
 
-            var cmd1 = cx.CreateCommand();
-            cmd1.CommandText = "DELETE FROM articulos WHERE facturaId = $id";
-            cmd1.Parameters.AddWithValue("$id", f.Id);
-            await cmd1.ExecuteNonQueryAsync();
+            try
+            {
+                var cmd1 = cx.CreateCommand();
+                cmd1.Transaction = transaction;
+                cmd1.CommandText = "DELETE FROM articulos WHERE facturaId = $id";
+                cmd1.Parameters.AddWithValue("$id", f.Id);
+                await cmd1.ExecuteNonQueryAsync();
 
-            var cmd2 = cx.CreateCommand();
-            cmd2.CommandText = "DELETE FROM facturas WHERE id = $id";
-            cmd2.Parameters.AddWithValue("$id", f.Id);
-            await cmd2.ExecuteNonQueryAsync();
+                var cmd2 = cx.CreateCommand();
+                cmd2.Transaction = transaction;
+                cmd2.CommandText = "DELETE FROM facturas WHERE id = $id";
+                cmd2.Parameters.AddWithValue("$id", f.Id);
+                await cmd2.ExecuteNonQueryAsync();
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+        }
+
+        // NUEVO MÉTODO PARA ACTUALIZAR FACTURAS
+        public async Task ActualizarFactura(Facturas f)
+        {
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+            using var transaction = cx.BeginTransaction();
+
+            try
+            {
+                // 1. Actualizar cabecera de la factura
+                var cmdFactura = cx.CreateCommand();
+                cmdFactura.Transaction = transaction;
+                cmdFactura.CommandText = "UPDATE facturas SET fecha = $fecha, cliente = $cliente WHERE id = $id";
+                cmdFactura.Parameters.AddWithValue("$fecha", f.Fecha.ToString("yyyy-MM-dd"));
+                cmdFactura.Parameters.AddWithValue("$cliente", f.Cliente);
+                cmdFactura.Parameters.AddWithValue("$id", f.Id);
+                await cmdFactura.ExecuteNonQueryAsync();
+
+                // 2. Eliminar artículos existentes (borrado y re-inserción)
+                var cmdDelete = cx.CreateCommand();
+                cmdDelete.Transaction = transaction;
+                cmdDelete.CommandText = "DELETE FROM articulos WHERE facturaId = $id";
+                cmdDelete.Parameters.AddWithValue("$id", f.Id);
+                await cmdDelete.ExecuteNonQueryAsync();
+
+                // 3. Re-insertar todos los artículos de la lista editada
+                var cmdInsert = cx.CreateCommand();
+                cmdInsert.Transaction = transaction;
+                cmdInsert.CommandText = "INSERT INTO articulos(facturaId, nombre, cantidad, precio) VALUES($facturaId, $nombre, $cantidad, $precio)";
+
+                var pFacturaId = cmdInsert.Parameters.AddWithValue("$facturaId", f.Id);
+                var pNombre = cmdInsert.Parameters.AddWithValue("$nombre", string.Empty);
+                var pCantidad = cmdInsert.Parameters.AddWithValue("$cantidad", 0);
+                var pPrecio = cmdInsert.Parameters.AddWithValue("$precio", 0.0m);
+
+                foreach (var a in f.Articulos)
+                {
+                    pNombre.Value = a.Nombre;
+                    pCantidad.Value = a.Cantidad;
+                    pPrecio.Value = a.Precio;
+                    await cmdInsert.ExecuteNonQueryAsync();
+                }
+
+                await transaction.CommitAsync();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
         }
     }
 }
