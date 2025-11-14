@@ -1,21 +1,21 @@
 ﻿@page "/DetalleFactura/{FacturaId:int}"
 @using facturas.Components.Data
 @using FacturaModel = facturas.Components.Data.Facturas
-@using ArticuloModel = facturas.Components.Data.Articulos
-@using Microsoft.AspNetCore.Components
+@inject ServicioFacturas ServicioFacturas
+@inject NavigationManager Navegacion
 @rendermode InteractiveServer
 
 <style>
-    .contenedor-detalle {
-        border: 1px solid black;
-        padding: 20px;
-        background-color: #f7f7f7;
+    body {
+        font-family: 'Times New Roman', serif;
+        background-color: #fcfcfc;
     }
 
-    .info-header {
-        border-bottom: 2px solid #333;
-        margin-bottom: 15px;
-        padding-bottom: 10px;
+    .seccion-baja {
+        border: 1px solid black;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #ffffff;
     }
 
     .tabla-registro {
@@ -26,54 +26,65 @@
 
         .tabla-registro th, .tabla-registro td {
             border: 1px solid black;
-            padding: 8px;
+            padding: 4px;
             text-align: left;
+            font-size: 0.9em;
         }
 
         .tabla-registro th {
-            background-color: #cccccc;
-            font-weight: bold;
+            background-color: #dddddd;
+            font-weight: normal;
         }
 
-    .pie-tabla-detalle {
+    .pie-tabla {
         font-weight: bold;
         text-align: right;
-        padding: 10px 0;
-        font-size: 1.2em;
+        padding: 5px 0;
+        border-top: 2px solid black;
+        margin-top: 5px;
+        font-size: 1.1em;
     }
 
     .btn-simple {
-        background-color: #007bff;
-        color: white;
-        border: none;
-        padding: 10px 20px;
+        background-color: #90a4ae;
+        color: black;
+        border: 1px solid #455a64;
+        padding: 6px 10px;
         cursor: pointer;
-        margin-top: 20px;
+        font-size: 0.9em;
+        text-decoration: none; 
+        display: inline-block;
+    }
+
+    .btn-editar-simple {
+        background-color: #ff9800;
+        color: black;
+        border: 1px solid #e65100;
+        font-weight: bold;
     }
 </style>
 
-<h1>Detalle de Factura #@FacturaId</h1>
-
 @if (factura == null)
 {
-    <p>Cargando detalles o factura no encontrada...</p>
+    <p>Cargando detalles de la factura...</p>
 }
 else
 {
-    <div class="contenedor-detalle">
-        <div class="info-header">
-            <p><strong>Cliente:</strong> @factura.Cliente</p>
-            <p><strong>Fecha de Emisión:</strong> @factura.Fecha.ToShortDateString()</p>
-        </div>
+    <h1>Detalle de Factura #@factura.Id</h1>
 
-        <h3 style="margin-top: 20px;">Artículos Facturados</h3>
+    <div class="seccion-baja">
+        <h4 style="margin-top: 0;">Información General</h4>
+        <p><strong>Cliente:</strong> @factura.Cliente</p>
+        <p><strong>Fecha:</strong> @factura.Fecha.ToShortDateString()</p>
+        <p><strong>Total de Artículos:</strong> @factura.Articulos.Count</p>
 
+        <h4 style="margin-top: 20px;">Artículos</h4>
         <table class="tabla-registro">
             <thead>
                 <tr>
-                    <th style="width: 60%;">Artículo</th>
-                    <th style="width: 10%;">Cantidad</th>
-                    <th style="width: 15%;">Precio Unitario</th>
+                    <th style="width: 50%;">Descripción</th>
+                    <th style="width: 15%;">Cant.</th>
+                    <th style="width: 20%;">Precio Unitario</th>
                     <th style="width: 15%;">Subtotal</th>
                 </tr>
             </thead>
@@ -90,9 +101,19 @@ else
             </tbody>
         </table>
 
-        <div class="pie-tabla-detalle">
-            TOTAL DE LA FACTURA: $@factura.Total.ToString("C2")
+        <div class="pie-tabla">
+            TOTAL: @factura.Total.ToString("C2")
         </div>
+    </div>
+
+    <hr />
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button @onclick='() => Navegacion.NavigateTo($"/Facturas/{factura.Id}")'
+                class="btn-simple btn-editar-simple"
+                style="margin-right: 10px;">
+            Editar Factura
+        </button>
 
         <button @onclick='() => Navegacion.NavigateTo("/ListaFacturas")' class="btn-simple">
             Volver al Historial
@@ -106,22 +127,21 @@ else
 
     private FacturaModel factura;
 
-    [Inject]
-    public NavigationManager Navegacion { get; set; }
-
-    [Inject]
-    public ServicioFacturas ServicioFacturas { get; set; }
-
     protected override async Task OnInitializedAsync()
     {
         try
         {
             factura = await ServicioFacturas.ObtenerFacturaPorId(FacturaId);
+            if (factura == null)
+            {
+              
+                Console.WriteLine($"Factura con ID {FacturaId} no encontrada.");
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al cargar el detalle: {ex.Message}");
-            factura = null;
+            Console.WriteLine($"Error al cargar el detalle de la factura: {ex.Message}");
+          
         }
     }
 }
