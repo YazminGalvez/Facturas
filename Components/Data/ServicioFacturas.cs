@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
-using System.Linq; // Necesario para .Sum()
+using System.Linq;
 
 namespace facturas.Components.Data
 {
@@ -180,8 +180,7 @@ namespace facturas.Components.Data
                 throw;
             }
         }
-
-        // NUEVO MÉTODO PARA ACTUALIZAR FACTURAS
+   
         public async Task ActualizarFactura(Facturas f)
         {
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
@@ -189,8 +188,7 @@ namespace facturas.Components.Data
             using var transaction = cx.BeginTransaction();
 
             try
-            {
-                // 1. Actualizar cabecera de la factura
+            {         
                 var cmdFactura = cx.CreateCommand();
                 cmdFactura.Transaction = transaction;
                 cmdFactura.CommandText = "UPDATE facturas SET fecha = $fecha, cliente = $cliente WHERE id = $id";
@@ -198,15 +196,13 @@ namespace facturas.Components.Data
                 cmdFactura.Parameters.AddWithValue("$cliente", f.Cliente);
                 cmdFactura.Parameters.AddWithValue("$id", f.Id);
                 await cmdFactura.ExecuteNonQueryAsync();
-
-                // 2. Eliminar artículos existentes (borrado y re-inserción)
+    
                 var cmdDelete = cx.CreateCommand();
                 cmdDelete.Transaction = transaction;
                 cmdDelete.CommandText = "DELETE FROM articulos WHERE facturaId = $id";
                 cmdDelete.Parameters.AddWithValue("$id", f.Id);
                 await cmdDelete.ExecuteNonQueryAsync();
-
-                // 3. Re-insertar todos los artículos de la lista editada
+            
                 var cmdInsert = cx.CreateCommand();
                 cmdInsert.Transaction = transaction;
                 cmdInsert.CommandText = "INSERT INTO articulos(facturaId, nombre, cantidad, precio) VALUES($facturaId, $nombre, $cantidad, $precio)";

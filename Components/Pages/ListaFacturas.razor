@@ -2,6 +2,7 @@
 @using facturas.Components.Data
 @using FacturaModel = facturas.Components.Data.Facturas
 @using Microsoft.AspNetCore.Components
+@using System.Linq
 @rendermode InteractiveServer
 
 <style>
@@ -120,14 +121,14 @@ else
                 </div>
 
                 <div class="pie-tabla" style="margin-top: 0;">
-                    TOTAL: $@f.Total.ToString("C2")
+                    TOTAL: <span>@FormatoMoneda(f.Total)</span>
                 </div>
 
                 <div style="margin-top: 10px;">
                     <button @onclick='() => Navegacion.NavigateTo($"/Facturas/{f.Id}")'
                             class="btn-simple btn-editar-simple"
                             style="margin-right: 10px;">
-                         Editar Factura
+                        Editar Factura
                     </button>
                     <button @onclick="() => EliminarFactura(f)" class="btn-simple btn-eliminar-simple">
                          Eliminar Factura
@@ -143,6 +144,10 @@ else
     private List<FacturaModel> facturasFiltradas;
     private string filtroCliente = string.Empty;
 
+    private string FormatoMoneda(decimal monto)
+    {
+        return monto.ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"));
+    }
 
     [Inject]
     public NavigationManager Navegacion
