@@ -31,14 +31,56 @@
         font-size: 0.9em;
     }
 
+    .tabla-registro {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+        .tabla-registro th, .tabla-registro td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: left;
+            font-size: 0.9em;
+        }
+
+        .tabla-registro th {
+            background-color: #dddddd;
+            font-weight: normal;
+        }
+
+    .pie-tabla {
+        font-weight: bold;
+        text-align: right;
+        padding: 5px 0;
+        border-top: 2px solid black;
+        margin-top: 5px;
+        font-size: 1.1em;
+    }
+
     .btn-reporte {
         background-color: #4CAF50;
         color: white;
         border-color: #388E3C;
     }
+
+    .enlace-detalle {
+        color: #007bff;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    .msg-error {
+        color: #aa0000;
+        margin-top: 10px;
+        border: 1px solid #aa0000;
+        background-color: #ffdddd;
+        padding: 5px;
+        font-size: 0.9em;
+    }
 </style>
 
-<h1>Reporte Anual de Ingresos </h1>
+<h1>Reporte Anual de Ingresos</h1>
 
 <div class="seccion-baja" style="display: flex; gap: 10px; align-items: center; background-color: #ffffff;">
     <label>Seleccionar Año:</label>
@@ -60,23 +102,56 @@ else if (reporte == null)
 }
 else
 {
-    <div class="seccion-baja">
-        <h2>Reporte Agrupado para el Año @reporte.Anio</h2>
+    <div class="seccion-baja" style="background-color: #f7f7f7; padding: 25px;">
+        <h2 style="margin-top: 0;">Total Anual: @FormatoMoneda(reporte.TotalAnual)</h2>
 
         @if (!reporte.Meses.Any(m => m.Facturas.Any()))
         {
-            <p>No se encontraron facturas registradas para el año @reporte.Anio.</p>
+            <p class="msg-error" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba; padding: 10px; border-radius: 4px; margin-top: 15px;">
+                ! No se encontraron facturas registradas para el año @reporte.Anio.
+            </p>
         }
         else
         {
-            <p>Total Anual (Calculado): @FormatoMoneda(reporte.TotalAnual)</p>
-            <p>Se encontraron facturas en los siguientes meses:</p>
-            <ul>
-                @foreach (var mes in reporte.Meses.Where(m => m.Facturas.Any()))
-                {
-                    <li>@mes.NombreMes: @mes.Facturas.Count facturas (Total: @FormatoMoneda(mes.TotalFacturado))</li>
-                }
-            </ul>
+            @foreach (var mes in reporte.Meses.Where(m => m.Facturas.Any()))
+            {
+                <div style="margin-top: 25px; border: 1px solid #ccc; padding: 10px; background-color: #ffffff;">
+                    <div style="border-bottom: 2px solid #333; margin-bottom: 10px; padding-bottom: 5px;">
+                        <h4 style="margin: 0;">Mes: @mes.NombreMes</h4>
+                        <p style="margin: 5px 0 0 0;">Facturas Registradas: <strong>@mes.Facturas.Count</strong></p>
+                    </div>
+
+                    <table class="tabla-registro" style="font-size: 0.8em;">
+                        <thead>
+                            <tr style="background-color: #cccccc;">
+                                <th style="width: 20%;">ID Factura</th>
+                                <th style="width: 35%;">Cliente</th>
+                                <th style="width: 25%; text-align: right;">Fecha</th>
+                                <th style="width: 20%; text-align: right;">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var factura in mes.Facturas)
+                            {
+                                <tr>
+                                    <td>
+                                        <a @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{factura.Id}")' class="enlace-detalle">
+                                            #@factura.Id
+                                        </a>
+                                    </td>
+                                    <td>@factura.Cliente</td>
+                                    <td style="text-align: right;">@factura.Fecha.ToShortDateString()</td>
+                                    <td style="text-align: right;">@FormatoMoneda(factura.Total)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    <div class="pie-tabla" style="font-size: 1.0em; margin-top: 10px; border-top: 1px dashed #666;">
+                        TOTAL @mes.NombreMes: <span>@FormatoMoneda(mes.TotalFacturado)</span>
+                    </div>
+                </div>
+            }
         }
     </div>
 
@@ -89,7 +164,7 @@ else
 
 @code {
     private int anioSeleccionado = DateTime.Now.Year;
-    private ReporteAnualModel reporte;
+    private ReporteAnualModel reporte; 
     private bool cargando = false;
 
     private string FormatoMoneda(decimal monto)
@@ -104,9 +179,9 @@ else
         return nombre.Substring(0, 1).ToUpper() + nombre.Substring(1);
     }
 
-    protected override async Task OnInitializedAsync()
+    protected override Task OnInitializedAsync()
     {
-        await GenerarReporte();
+        return Task.CompletedTask;
     }
 
     private async Task GenerarReporte()
@@ -120,19 +195,15 @@ else
             var facturasDelAnio = await ServicioFacturas.ObtenerFacturasAnuales(anioSeleccionado);
 
             reporte = new ReporteAnualModel { Anio = anioSeleccionado };
-            var facturasAgrupadas = facturasDelAnio.GroupBy(f => f.Fecha.Month);
 
-            var mesesReporte = Enumerable.Range(1, 12)
-                .Select(m => new ReporteMensualModel(m, ObtenerNombreMes(m)))
+            reporte.Meses = Enumerable.Range(1, 12)
+                .Select(m =>
+                {
+                    var mesReporte = new ReporteMensualModel(m, ObtenerNombreMes(m));
+                    mesReporte.Facturas.AddRange(facturasDelAnio.Where(f => f.Fecha.Month == m));
+                    return mesReporte;
+                })
                 .ToList();
-
-            foreach (var grupo in facturasAgrupadas)
-            {
-                var mesEnReporte = mesesReporte.First(m => m.Mes == grupo.Key);
-                mesEnReporte.Facturas.AddRange(grupo);
-            }
-
-            reporte.Meses = mesesReporte.OrderBy(m => m.Mes).ToList();
         }
         catch (Exception ex)
         {
