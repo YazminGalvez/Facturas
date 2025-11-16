@@ -94,8 +94,15 @@
 else
 {
     <div style="text-align: center; margin-bottom: 20px;">
-        <button @onclick='() => Navegacion.NavigateTo("/Facturas")' class="btn-simple" style="background-color: #007bff; color: white; padding: 10px 20px;">
+        <button @onclick='() => Navegacion.NavigateTo("/Facturas")'
+                class="btn-simple"
+                style="background-color: #007bff; color: white; padding: 10px 20px; margin-right: 10px;">
             Volver a Crear Factura
+        </button>
+        <button @onclick='() => Navegacion.NavigateTo("/ReporteSat")'
+                class="btn-simple"
+                style="background-color: #4CAF50; color: white; padding: 10px 20px;">
+            Ver Reporte Anual (SAT)
         </button>
     </div>
 
@@ -120,7 +127,8 @@ else
                     <p style="margin: 0;">Fecha: <strong>@f.Fecha.ToShortDateString()</strong></p>
                 </div>
 
-                <div class="pie-tabla" style="margin-top: 0;">
+                <div class="pie-tabla"
+                     style="margin-top: 0;">
                     TOTAL: <span>@FormatoMoneda(f.Total)</span>
                 </div>
 
@@ -131,7 +139,7 @@ else
                         Editar Factura
                     </button>
                     <button @onclick="() => EliminarFactura(f)" class="btn-simple btn-eliminar-simple">
-                         Eliminar Factura
+                        Eliminar Factura
                     </button>
                 </div>
             </div>
@@ -140,7 +148,8 @@ else
 }
 
 @code {
-    private List<FacturaModel> facturas;
+    private List<FacturaModel>
+facturas;
     private List<FacturaModel> facturasFiltradas;
     private string filtroCliente = string.Empty;
 
@@ -152,13 +161,15 @@ else
     [Inject]
     public NavigationManager Navegacion
     {
-        get; set;
+        get;
+        set;
     }
 
     [Inject]
     public ServicioFacturas ServicioFacturas
     {
-        get; set;
+        get;
+        set;
     }
 
 

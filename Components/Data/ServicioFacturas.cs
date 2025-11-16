@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Globalization;
 
 namespace facturas.Components.Data
 {
@@ -180,7 +181,7 @@ namespace facturas.Components.Data
                 throw;
             }
         }
-   
+
         public async Task ActualizarFactura(Facturas f)
         {
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
@@ -188,7 +189,7 @@ namespace facturas.Components.Data
             using var transaction = cx.BeginTransaction();
 
             try
-            {         
+            {
                 var cmdFactura = cx.CreateCommand();
                 cmdFactura.Transaction = transaction;
                 cmdFactura.CommandText = "UPDATE facturas SET fecha = $fecha, cliente = $cliente WHERE id = $id";
@@ -196,13 +197,13 @@ namespace facturas.Components.Data
                 cmdFactura.Parameters.AddWithValue("$cliente", f.Cliente);
                 cmdFactura.Parameters.AddWithValue("$id", f.Id);
                 await cmdFactura.ExecuteNonQueryAsync();
-    
+
                 var cmdDelete = cx.CreateCommand();
                 cmdDelete.Transaction = transaction;
                 cmdDelete.CommandText = "DELETE FROM articulos WHERE facturaId = $id";
                 cmdDelete.Parameters.AddWithValue("$id", f.Id);
                 await cmdDelete.ExecuteNonQueryAsync();
-            
+
                 var cmdInsert = cx.CreateCommand();
                 cmdInsert.Transaction = transaction;
                 cmdInsert.CommandText = "INSERT INTO articulos(facturaId, nombre, cantidad, precio) VALUES($facturaId, $nombre, $cantidad, $precio)";
@@ -227,6 +228,39 @@ namespace facturas.Components.Data
                 transaction.Rollback();
                 throw;
             }
+        }
+
+        public async Task<List<Facturas>> ObtenerFacturasAnuales(int anio)
+        {
+            var lista = new List<Facturas>();
+
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+
+            var cmd = cx.CreateCommand();
+            cmd.CommandText = @"
+                SELECT id, fecha, cliente 
+                FROM facturas 
+                WHERE strftime('%Y', fecha) = $anio
+                ORDER BY fecha, id DESC;
+            ";
+            cmd.Parameters.AddWithValue("$anio", anio.ToString());
+
+            using var rd = await cmd.ExecuteReaderAsync();
+            while (await rd.ReadAsync())
+            {
+                var f = new Facturas
+                {
+                    Id = rd.GetInt32(0),
+                    Fecha = DateTime.Parse(rd.GetString(1)),
+                    Cliente = rd.GetString(2)
+                };
+
+                f.Articulos = await ObtenerArticulos(f.Id);
+                lista.Add(f);
+            }
+
+            return lista;
         }
     }
 }

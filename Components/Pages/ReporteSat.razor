@@ -1,0 +1,146 @@
+﻿@page "/ReporteSat"
+@using facturas.Components.Data
+@using facturas.Components.Data.Reportes
+@using ReporteAnualModel = facturas.Components.Data.Reportes.ReporteAnual
+@using ReporteMensualModel = facturas.Components.Data.Reportes.ReporteMensual
+@using System.Globalization
+@using System.Linq
+@rendermode InteractiveServer
+@inject ServicioFacturas ServicioFacturas
+@inject NavigationManager Navegacion
+
+<style>
+    .seccion-baja {
+        border: 1px solid black;
+        padding: 15px;
+        margin-bottom: 20px;
+        background-color: #f7f7f7;
+    }
+
+    .campo-texto {
+        padding: 5px;
+        border: 1px solid #333;
+    }
+
+    .btn-simple {
+        background-color: #90a4ae;
+        color: black;
+        border: 1px solid #455a64;
+        padding: 6px 10px;
+        cursor: pointer;
+        font-size: 0.9em;
+    }
+
+    .btn-reporte {
+        background-color: #4CAF50;
+        color: white;
+        border-color: #388E3C;
+    }
+</style>
+
+<h1>Reporte Anual de Ingresos </h1>
+
+<div class="seccion-baja" style="display: flex; gap: 10px; align-items: center; background-color: #ffffff;">
+    <label>Seleccionar Año:</label>
+
+    <input type="number" min="2000" max="@DateTime.Now.Year" @bind="anioSeleccionado" class="campo-texto" style="width: 120px;" />
+
+    <button @onclick="GenerarReporte" class="btn-simple btn-reporte">
+        Generar Reporte
+    </button>
+</div>
+
+@if (cargando)
+{
+    <p>Cargando información para el año @anioSeleccionado...</p>
+}
+else if (reporte == null)
+{
+    <p>Seleccione un año y haga clic en 'Generar Reporte'.</p>
+}
+else
+{
+    <div class="seccion-baja">
+        <h2>Reporte Agrupado para el Año @reporte.Anio</h2>
+
+        @if (!reporte.Meses.Any(m => m.Facturas.Any()))
+        {
+            <p>No se encontraron facturas registradas para el año @reporte.Anio.</p>
+        }
+        else
+        {
+            <p>Total Anual (Calculado): @FormatoMoneda(reporte.TotalAnual)</p>
+            <p>Se encontraron facturas en los siguientes meses:</p>
+            <ul>
+                @foreach (var mes in reporte.Meses.Where(m => m.Facturas.Any()))
+                {
+                    <li>@mes.NombreMes: @mes.Facturas.Count facturas (Total: @FormatoMoneda(mes.TotalFacturado))</li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div style="text-align: center; margin-top: 20px;">
+        <button @onclick='() => Navegacion.NavigateTo("/ListaFacturas")' class="btn-simple" style="background-color: #007bff; color: white; padding: 10px 20px;">
+            Volver al Historial
+        </button>
+    </div>
+}
+
+@code {
+    private int anioSeleccionado = DateTime.Now.Year;
+    private ReporteAnualModel reporte;
+    private bool cargando = false;
+
+    private string FormatoMoneda(decimal monto)
+    {
+        return monto.ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"));
+    }
+
+    private string ObtenerNombreMes(int mes)
+    {
+        var culture = new CultureInfo("es-ES");
+        var nombre = culture.DateTimeFormat.GetMonthName(mes);
+        return nombre.Substring(0, 1).ToUpper() + nombre.Substring(1);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GenerarReporte();
+    }
+
+    private async Task GenerarReporte()
+    {
+        cargando = true;
+        reporte = null;
+        StateHasChanged();
+
+        try
+        {
+            var facturasDelAnio = await ServicioFacturas.ObtenerFacturasAnuales(anioSeleccionado);
+
+            reporte = new ReporteAnualModel { Anio = anioSeleccionado };
+            var facturasAgrupadas = facturasDelAnio.GroupBy(f => f.Fecha.Month);
+
+            var mesesReporte = Enumerable.Range(1, 12)
+                .Select(m => new ReporteMensualModel(m, ObtenerNombreMes(m)))
+                .ToList();
+
+            foreach (var grupo in facturasAgrupadas)
+            {
+                var mesEnReporte = mesesReporte.First(m => m.Mes == grupo.Key);
+                mesEnReporte.Facturas.AddRange(grupo);
+            }
+
+            reporte.Meses = mesesReporte.OrderBy(m => m.Mes).ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al generar el reporte: {ex.Message}");
+            reporte = null;
+        }
+
+        cargando = false;
+        StateHasChanged();
+    }
+}
