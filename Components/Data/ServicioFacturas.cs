@@ -262,5 +262,16 @@ namespace facturas.Components.Data
 
             return lista;
         }
+        public async Task<Estadisticas> ObtenerDashboard()
+        {
+            var stats = new Estadisticas();
+
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+
+          
+            stats.DatosCargados = true;
+            return stats;
+        }
     }
 }
