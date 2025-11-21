@@ -15,12 +15,21 @@ else
 {
     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            <h5 style="margin: 0 0 10px 0; color: #666;">Facturas de Hoy</h5>
+            <h5 style="margin: 0 0 10px 0; color: #666;">Facturas de HOY</h5>
             <h2 style="margin: 0; color: #2e7d32;">@stats.VentasHoy.ToString("C")</h2>
             <small style="color: #999; font-size: 0.8em;">
                 Actualizado: @DateTime.Now.ToString("HH:mm:ss")
             </small>
         </div>
+
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <h5 style="margin: 0 0 10px 0; color: #666;">Ingresos este Mes</h5>
+            <h2 style="margin: 0; color: #1976d2;">@stats.VentasMes.ToString("C")</h2>
+            <small style="color: #999; font-size: 0.8em;">
+                Actualizado: @DateTime.Now.ToString("HH:mm:ss")
+            </small>
+        </div>
+
     </div>
 }
 

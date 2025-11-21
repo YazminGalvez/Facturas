@@ -286,6 +286,24 @@ namespace facturas.Components.Data
             {
                 stats.VentasHoy = 0;
             }
+            var cmdMes = cx.CreateCommand();
+            cmdMes.CommandText = @"
+                SELECT SUM(a.cantidad * a.precio) 
+                FROM facturas f
+                JOIN articulos a ON f.id = a.facturaId
+                WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime')";
+
+            var resultMes = await cmdMes.ExecuteScalarAsync();
+
+            if (resultMes != null && resultMes != DBNull.Value)
+            {
+                stats.VentasMes = Convert.ToDecimal(resultMes);
+            }
+            else
+            {
+                stats.VentasMes = 0;
+            }
+
             stats.DatosCargados = true;
             return stats;
         }
