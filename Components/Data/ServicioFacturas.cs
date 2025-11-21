@@ -269,7 +269,23 @@ namespace facturas.Components.Data
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
 
-          
+            var cmd = cx.CreateCommand();
+            cmd.CommandText = @"
+                SELECT SUM(a.cantidad * a.precio) 
+                FROM facturas f
+                JOIN articulos a ON f.id = a.facturaId
+                WHERE date(f.fecha) = date('now', 'localtime')";
+
+            var result = await cmd.ExecuteScalarAsync();
+
+            if (result != null && result != DBNull.Value)
+            {
+                stats.VentasHoy = Convert.ToDecimal(result);
+            }
+            else
+            {
+                stats.VentasHoy = 0;
+            }
             stats.DatosCargados = true;
             return stats;
         }
