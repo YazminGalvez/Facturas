@@ -7,5 +7,8 @@
         public decimal VentasMes { get; set; }
         public string ProductoMasVendido { get; set; } = "---";
         public int CantidadProductoMasVendido { get; set; } = 0;
+
+        public string ClienteMayorFacturador { get; set; } = "---";
+        public decimal MontoMayorFacturador { get; set; } = 0;
     }
 }

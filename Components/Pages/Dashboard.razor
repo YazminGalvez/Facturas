@@ -14,9 +14,10 @@
 else
 {
     <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Facturas de HOY</h5>
-            <h2 style="margin: 0; color: #2e7d32;">@stats.VentasHoy.ToString("C")</h2>
+            <h2 style="margin: 0; color: #2e7d32;">@FormatoMoneda(stats.VentasHoy)</h2>
             <small style="color: #999; font-size: 0.8em;">
                 Actualizado: @DateTime.Now.ToString("HH:mm:ss")
             </small>
@@ -24,7 +25,7 @@ else
 
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Ingresos este Mes</h5>
-            <h2 style="margin: 0; color: #1976d2;">@stats.VentasMes.ToString("C")</h2>
+            <h2 style="margin: 0; color: #1976d2;">@FormatoMoneda(stats.VentasMes)</h2>
             <small style="color: #999; font-size: 0.8em;">
                 Actualizado: @DateTime.Now.ToString("HH:mm:ss")
             </small>
@@ -38,6 +39,19 @@ else
             </small>
         </div>
 
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 400px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+            <h5 style="margin: 0 0 20px 0; color: #002f6c; font-weight: bold;">
+                🥇 Top Usuarios
+            </h5>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
+                <span style="color: #333; font-weight: 500;">Mayor Facturador:</span>
+                <span style="color: #007bff; font-weight: bold;">
+                    @stats.ClienteMayorFacturador (@FormatoMoneda(stats.MontoMayorFacturador))
+                </span>
+            </div>
+        </div>
+
     </div>
 }
 
@@ -45,6 +59,11 @@ else
     private Estadisticas stats;
     private PeriodicTimer? timer;
     private CancellationTokenSource? cts;
+
+    private string FormatoMoneda(decimal monto)
+    {
+        return monto.ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"));
+    }
 
     protected override void OnInitialized()
     {

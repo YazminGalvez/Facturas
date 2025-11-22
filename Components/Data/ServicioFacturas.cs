@@ -298,11 +298,31 @@ namespace facturas.Components.Data
                 ORDER BY total_vendido DESC
                 LIMIT 1";
 
-            using var reader = await cmdTop.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
+            using (var reader = await cmdTop.ExecuteReaderAsync())
             {
-                stats.ProductoMasVendido = reader.IsDBNull(0) ? "---" : reader.GetString(0);
-                stats.CantidadProductoMasVendido = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                if (await reader.ReadAsync())
+                {
+                    stats.ProductoMasVendido = reader.IsDBNull(0) ? "---" : reader.GetString(0);
+                    stats.CantidadProductoMasVendido = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
+                }
+            }
+
+            var cmdMayor = cx.CreateCommand();
+            cmdMayor.CommandText = @"
+                SELECT f.cliente, SUM(a.cantidad * a.precio) as total
+                FROM facturas f
+                JOIN articulos a ON f.id = a.facturaId
+                GROUP BY f.cliente
+                ORDER BY total DESC
+                LIMIT 1";
+
+            using (var readerMF = await cmdMayor.ExecuteReaderAsync())
+            {
+                if (await readerMF.ReadAsync())
+                {
+                    stats.ClienteMayorFacturador = readerMF.IsDBNull(0) ? "---" : readerMF.GetString(0);
+                    stats.MontoMayorFacturador = readerMF.IsDBNull(1) ? 0 : readerMF.GetDecimal(1);
+                }
             }
 
             stats.DatosCargados = true;
