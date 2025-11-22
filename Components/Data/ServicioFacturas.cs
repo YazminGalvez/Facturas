@@ -270,23 +270,21 @@ namespace facturas.Components.Data
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
 
+           
             var cmdHoy = cx.CreateCommand();
             cmdHoy.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
                 WHERE date(f.fecha) = date('now', 'localtime')";
-
             var resultHoy = await cmdHoy.ExecuteScalarAsync();
             stats.VentasHoy = (resultHoy != null && resultHoy != DBNull.Value) ? Convert.ToDecimal(resultHoy) : 0;
-
             var cmdMes = cx.CreateCommand();
             cmdMes.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
                 WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime')";
-
             var resultMes = await cmdMes.ExecuteScalarAsync();
             stats.VentasMes = (resultMes != null && resultMes != DBNull.Value) ? Convert.ToDecimal(resultMes) : 0;
 
@@ -297,7 +295,6 @@ namespace facturas.Components.Data
                 GROUP BY nombre
                 ORDER BY total_vendido DESC
                 LIMIT 1";
-
             using (var reader = await cmdTop.ExecuteReaderAsync())
             {
                 if (await reader.ReadAsync())
@@ -306,7 +303,7 @@ namespace facturas.Components.Data
                     stats.CantidadProductoMasVendido = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 }
             }
-
+ 
             var cmdMayor = cx.CreateCommand();
             cmdMayor.CommandText = @"
                 SELECT f.cliente, SUM(a.cantidad * a.precio) as total
@@ -315,7 +312,6 @@ namespace facturas.Components.Data
                 GROUP BY f.cliente
                 ORDER BY total DESC
                 LIMIT 1";
-
             using (var readerMF = await cmdMayor.ExecuteReaderAsync())
             {
                 if (await readerMF.ReadAsync())
@@ -332,7 +328,6 @@ namespace facturas.Components.Data
                 GROUP BY cliente
                 ORDER BY total_facts DESC
                 LIMIT 1";
-
             using (var readerMA = await cmdActivo.ExecuteReaderAsync())
             {
                 if (await readerMA.ReadAsync())
@@ -340,6 +335,44 @@ namespace facturas.Components.Data
                     stats.ClienteMasActivo = readerMA.IsDBNull(0) ? "---" : readerMA.GetString(0);
                     stats.CantidadFacturasMasActivo = readerMA.IsDBNull(1) ? 0 : readerMA.GetInt32(1);
                 }
+            }
+  
+            var cmdList = cx.CreateCommand();
+            cmdList.CommandText = "SELECT id, fecha, cliente FROM facturas ORDER BY id DESC LIMIT 5";
+
+            var tempLista = new List<Facturas>();
+            using (var readerList = await cmdList.ExecuteReaderAsync())
+            {
+                while (await readerList.ReadAsync())
+                {
+                    tempLista.Add(new Facturas
+                    {
+                        Id = readerList.GetInt32(0),
+                        Fecha = DateTime.Parse(readerList.GetString(1)),
+                        Cliente = readerList.GetString(2)
+                    });
+                }
+            }
+
+            foreach (var f in tempLista)
+            {
+                var cmdArts = cx.CreateCommand();
+                cmdArts.CommandText = "SELECT nombre, cantidad, precio FROM articulos WHERE facturaId = $id";
+                cmdArts.Parameters.AddWithValue("$id", f.Id);
+
+                using (var readerArts = await cmdArts.ExecuteReaderAsync())
+                {
+                    while (await readerArts.ReadAsync())
+                    {
+                        f.Articulos.Add(new Articulos
+                        {
+                            Nombre = readerArts.GetString(0),
+                            Cantidad = readerArts.GetInt32(1),
+                            Precio = (decimal)readerArts.GetDouble(2)
+                        });
+                    }
+                }
+                stats.UltimasFacturas.Add(f);
             }
 
             stats.DatosCargados = true;

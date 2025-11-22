@@ -1,4 +1,6 @@
-﻿namespace facturas.Components.Data
+﻿using System.Collections.Generic;
+
+namespace facturas.Components.Data
 {
     public class Estadisticas
     {
@@ -11,5 +13,7 @@
         public decimal MontoMayorFacturador { get; set; } = 0;
         public string ClienteMasActivo { get; set; } = "---";
         public int CantidadFacturasMasActivo { get; set; } = 0;
+
+        public List<Facturas> UltimasFacturas { get; set; } = new List<Facturas>();
     }
 }

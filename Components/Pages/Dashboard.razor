@@ -2,6 +2,7 @@
 @using facturas.Components.Data
 @using System.Threading
 @inject ServicioFacturas ServicioFacturas
+@inject NavigationManager Navegacion
 @implements IDisposable
 @rendermode InteractiveServer
 
@@ -13,51 +14,87 @@
 }
 else
 {
-    <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
 
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Facturas de HOY</h5>
             <h2 style="margin: 0; color: #2e7d32;">@FormatoMoneda(stats.VentasHoy)</h2>
-            <small style="color: #999; font-size: 0.8em;">
-                Actualizado: @DateTime.Now.ToString("HH:mm:ss")
-            </small>
+            <small style="color: #999; font-size: 0.8em;">Actualizado: @DateTime.Now.ToString("HH:mm:ss")</small>
         </div>
 
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Ingresos este Mes</h5>
             <h2 style="margin: 0; color: #1976d2;">@FormatoMoneda(stats.VentasMes)</h2>
-            <small style="color: #999; font-size: 0.8em;">
-                Actualizado: @DateTime.Now.ToString("HH:mm:ss")
-            </small>
+            <small style="color: #999; font-size: 0.8em;">Actualizado: @DateTime.Now.ToString("HH:mm:ss")</small>
         </div>
 
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Artículo Más Vendido</h5>
             <h2 style="margin: 0; color: #e65100; font-size: 1.5em; word-wrap: break-word;">@stats.ProductoMasVendido</h2>
-            <small style="color: #999; font-size: 0.8em;">
-                Cantidad vendida: @stats.CantidadProductoMasVendido
-            </small>
+            <small style="color: #999; font-size: 0.8em;">Cantidad vendida: @stats.CantidadProductoMasVendido</small>
         </div>
 
         <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 400px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-            <h5 style="margin: 0 0 20px 0; color: #002f6c; font-weight: bold;">
-                🥇 Top Usuarios
-            </h5>
-
+            <h5 style="margin: 0 0 20px 0; color: #002f6c; font-weight: bold;">🥇 Top Usuarios</h5>
             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;">
                 <span style="color: #333; font-weight: 500;">Mayor Facturador:</span>
-                <span style="color: #007bff; font-weight: bold;">
-                    @stats.ClienteMayorFacturador (@FormatoMoneda(stats.MontoMayorFacturador))
-                </span>
+                <span style="color: #007bff; font-weight: bold;">@stats.ClienteMayorFacturador (@FormatoMoneda(stats.MontoMayorFacturador))</span>
             </div>
-
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <span style="color: #333; font-weight: 500;">Más Activo:</span>
-                <span style="color: #17a2b8; font-weight: bold;">
-                    @stats.ClienteMasActivo (@stats.CantidadFacturasMasActivo facts.)
-                </span>
+                <span style="color: #17a2b8; font-weight: bold;">@stats.ClienteMasActivo (@stats.CantidadFacturasMasActivo facts.)</span>
             </div>
         </div>
+    </div>
+
+    <div style="display: flex; gap: 20px; align-items: flex-start;">
+
+        <div style="flex: 1.5; border: 1px solid #ddd; border-radius: 8px; padding: 0; background-color: white; overflow: hidden; min-width: 450px;">
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #eee;">
+                <h5 style="margin: 0; color: #002f6c; font-weight: bold; font-size: 1rem;">
+                    📄 Actividad Reciente
+                </h5>
+                <a href="/ListaFacturas" style="text-decoration: none; color: #007bff; font-size: 0.85em; background: #f0f7ff; padding: 4px 12px; border-radius: 15px;">
+                    Ver todas
+                </a>
+            </div>
+
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead style="background-color: #f8faff;">
+                    <tr>
+                        <th style="padding: 10px 20px; text-align: left; color: #6c757d; font-size: 0.75em; text-transform: uppercase; font-weight: 600;">USUARIO</th>
+                        <th style="padding: 10px 20px; text-align: left; color: #6c757d; font-size: 0.75em; text-transform: uppercase; font-weight: 600;">FECHA</th>
+                        <th style="padding: 10px 20px; text-align: right; color: #6c757d; font-size: 0.75em; text-transform: uppercase; font-weight: 600;">TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (stats.UltimasFacturas != null && stats.UltimasFacturas.Any())
+                    {
+                        @foreach (var f in stats.UltimasFacturas)
+                        {
+                            <tr style="border-bottom: 1px solid #f5f5f5;">
+                                <td style="padding: 12px 20px; color: #333; font-size: 0.9em; font-weight: 500;">@f.Cliente</td>
+                                <td style="padding: 12px 20px; color: #666; font-size: 0.9em;">@f.Fecha.ToShortDateString()</td>
+                                <td style="padding: 12px 20px; text-align: right; font-weight: bold; color: #333; font-size: 0.9em;">
+                                    @FormatoMoneda(f.Total)
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="3" style="padding: 15px; text-align: center; color: #999; font-size: 0.9em;">
+                                Sin actividad reciente.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div style="flex: 1; min-width: 200px;"></div>
 
     </div>
 }
