@@ -325,6 +325,23 @@ namespace facturas.Components.Data
                 }
             }
 
+            var cmdActivo = cx.CreateCommand();
+            cmdActivo.CommandText = @"
+                SELECT cliente, COUNT(id) as total_facts
+                FROM facturas
+                GROUP BY cliente
+                ORDER BY total_facts DESC
+                LIMIT 1";
+
+            using (var readerMA = await cmdActivo.ExecuteReaderAsync())
+            {
+                if (await readerMA.ReadAsync())
+                {
+                    stats.ClienteMasActivo = readerMA.IsDBNull(0) ? "---" : readerMA.GetString(0);
+                    stats.CantidadFacturasMasActivo = readerMA.IsDBNull(1) ? 0 : readerMA.GetInt32(1);
+                }
+            }
+
             stats.DatosCargados = true;
             return stats;
         }

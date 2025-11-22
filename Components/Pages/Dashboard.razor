@@ -44,10 +44,17 @@ else
                 🥇 Top Usuarios
             </h5>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;">
                 <span style="color: #333; font-weight: 500;">Mayor Facturador:</span>
                 <span style="color: #007bff; font-weight: bold;">
                     @stats.ClienteMayorFacturador (@FormatoMoneda(stats.MontoMayorFacturador))
+                </span>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: #333; font-weight: 500;">Más Activo:</span>
+                <span style="color: #17a2b8; font-weight: bold;">
+                    @stats.ClienteMasActivo (@stats.CantidadFacturasMasActivo facts.)
                 </span>
             </div>
         </div>
