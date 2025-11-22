@@ -262,6 +262,7 @@ namespace facturas.Components.Data
 
             return lista;
         }
+
         public async Task<Estadisticas> ObtenerDashboard()
         {
             var stats = new Estadisticas();
@@ -269,23 +270,16 @@ namespace facturas.Components.Data
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
 
-            var cmd = cx.CreateCommand();
-            cmd.CommandText = @"
+            var cmdHoy = cx.CreateCommand();
+            cmdHoy.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
                 WHERE date(f.fecha) = date('now', 'localtime')";
 
-            var result = await cmd.ExecuteScalarAsync();
+            var resultHoy = await cmdHoy.ExecuteScalarAsync();
+            stats.VentasHoy = (resultHoy != null && resultHoy != DBNull.Value) ? Convert.ToDecimal(resultHoy) : 0;
 
-            if (result != null && result != DBNull.Value)
-            {
-                stats.VentasHoy = Convert.ToDecimal(result);
-            }
-            else
-            {
-                stats.VentasHoy = 0;
-            }
             var cmdMes = cx.CreateCommand();
             cmdMes.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
@@ -294,14 +288,21 @@ namespace facturas.Components.Data
                 WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime')";
 
             var resultMes = await cmdMes.ExecuteScalarAsync();
+            stats.VentasMes = (resultMes != null && resultMes != DBNull.Value) ? Convert.ToDecimal(resultMes) : 0;
 
-            if (resultMes != null && resultMes != DBNull.Value)
+            var cmdTop = cx.CreateCommand();
+            cmdTop.CommandText = @"
+                SELECT nombre, SUM(cantidad) as total_vendido
+                FROM articulos
+                GROUP BY nombre
+                ORDER BY total_vendido DESC
+                LIMIT 1";
+
+            using var reader = await cmdTop.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
             {
-                stats.VentasMes = Convert.ToDecimal(resultMes);
-            }
-            else
-            {
-                stats.VentasMes = 0;
+                stats.ProductoMasVendido = reader.IsDBNull(0) ? "---" : reader.GetString(0);
+                stats.CantidadProductoMasVendido = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
             }
 
             stats.DatosCargados = true;
