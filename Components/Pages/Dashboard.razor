@@ -47,9 +47,9 @@ else
         </div>
     </div>
 
-    <div style="display: flex; gap: 20px; align-items: flex-start;">
+    <div style="display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;">
 
-        <div style="flex: 1.5; border: 1px solid #ddd; border-radius: 8px; padding: 0; background-color: white; overflow: hidden; min-width: 450px;">
+        <div style="flex: 0 0 790px; width: 790px; border: 1px solid #ddd; border-radius: 8px; padding: 0; background-color: white; overflow: hidden;">
 
             <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; border-bottom: 1px solid #eee;">
                 <h5 style="margin: 0; color: #002f6c; font-weight: bold; font-size: 1rem;">
@@ -94,7 +94,13 @@ else
             </table>
         </div>
 
-        <div style="flex: 1; min-width: 200px;"></div>
+        <div style="flex: 0 0 400px; width: 400px;">
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <h5 style="margin: 0 0 10px 0; color: #666;">Total Facturas</h5>
+                <h2 style="margin: 0; color: #607d8b;">@stats.TotalFacturasHistorico</h2>
+                <small style="color: #999; font-size: 0.8em;">Histórico total</small>
+            </div>
+        </div>
 
     </div>
 }

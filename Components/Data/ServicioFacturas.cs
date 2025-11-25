@@ -270,7 +270,6 @@ namespace facturas.Components.Data
             using var cx = new SqliteConnection($"Data Source={RutaDb}");
             await cx.OpenAsync();
 
-           
             var cmdHoy = cx.CreateCommand();
             cmdHoy.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
@@ -279,6 +278,7 @@ namespace facturas.Components.Data
                 WHERE date(f.fecha) = date('now', 'localtime')";
             var resultHoy = await cmdHoy.ExecuteScalarAsync();
             stats.VentasHoy = (resultHoy != null && resultHoy != DBNull.Value) ? Convert.ToDecimal(resultHoy) : 0;
+
             var cmdMes = cx.CreateCommand();
             cmdMes.CommandText = @"
                 SELECT SUM(a.cantidad * a.precio) 
@@ -287,6 +287,11 @@ namespace facturas.Components.Data
                 WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime')";
             var resultMes = await cmdMes.ExecuteScalarAsync();
             stats.VentasMes = (resultMes != null && resultMes != DBNull.Value) ? Convert.ToDecimal(resultMes) : 0;
+
+            var cmdTotal = cx.CreateCommand();
+            cmdTotal.CommandText = "SELECT COUNT(*) FROM facturas";
+            var resultTotal = await cmdTotal.ExecuteScalarAsync();
+            stats.TotalFacturasHistorico = (resultTotal != null && resultTotal != DBNull.Value) ? Convert.ToInt32(resultTotal) : 0;
 
             var cmdTop = cx.CreateCommand();
             cmdTop.CommandText = @"
@@ -303,7 +308,7 @@ namespace facturas.Components.Data
                     stats.CantidadProductoMasVendido = reader.IsDBNull(1) ? 0 : reader.GetInt32(1);
                 }
             }
- 
+
             var cmdMayor = cx.CreateCommand();
             cmdMayor.CommandText = @"
                 SELECT f.cliente, SUM(a.cantidad * a.precio) as total
@@ -336,7 +341,7 @@ namespace facturas.Components.Data
                     stats.CantidadFacturasMasActivo = readerMA.IsDBNull(1) ? 0 : readerMA.GetInt32(1);
                 }
             }
-  
+
             var cmdList = cx.CreateCommand();
             cmdList.CommandText = "SELECT id, fecha, cliente FROM facturas ORDER BY id DESC LIMIT 5";
 
