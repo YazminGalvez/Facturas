@@ -8,6 +8,8 @@ namespace facturas.Components.Data
         public decimal VentasHoy { get; set; }
         public decimal VentasMes { get; set; }
         public int TotalFacturasHistorico { get; set; }
+        public string MejorMesNombre { get; set; } = "---";
+        public int MejorMesCantidad { get; set; } = 0;
         public string ProductoMasVendido { get; set; } = "---";
         public int CantidadProductoMasVendido { get; set; } = 0;
         public string ClienteMayorFacturador { get; set; } = "---";

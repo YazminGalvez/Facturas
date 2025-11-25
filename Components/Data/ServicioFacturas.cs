@@ -293,6 +293,27 @@ namespace facturas.Components.Data
             var resultTotal = await cmdTotal.ExecuteScalarAsync();
             stats.TotalFacturasHistorico = (resultTotal != null && resultTotal != DBNull.Value) ? Convert.ToInt32(resultTotal) : 0;
 
+            var cmdMejorMes = cx.CreateCommand();
+            cmdMejorMes.CommandText = @"
+                SELECT strftime('%Y-%m', fecha) as mes, COUNT(*) as total 
+                FROM facturas 
+                GROUP BY mes 
+                ORDER BY total DESC 
+                LIMIT 1";
+            using (var rd = await cmdMejorMes.ExecuteReaderAsync())
+            {
+                if (await rd.ReadAsync())
+                {
+                    string mesStr = rd.GetString(0);
+                    DateTime dt = DateTime.ParseExact(mesStr, "yyyy-MM", CultureInfo.InvariantCulture);
+                    stats.MejorMesNombre = dt.ToString("MMMM yyyy", new CultureInfo("es-ES"));
+                    if (stats.MejorMesNombre.Length > 0)
+                        stats.MejorMesNombre = char.ToUpper(stats.MejorMesNombre[0]) + stats.MejorMesNombre.Substring(1);
+
+                    stats.MejorMesCantidad = rd.GetInt32(1);
+                }
+            }
+
             var cmdTop = cx.CreateCommand();
             cmdTop.CommandText = @"
                 SELECT nombre, SUM(cantidad) as total_vendido
