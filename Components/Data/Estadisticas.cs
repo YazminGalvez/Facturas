@@ -7,10 +7,10 @@ namespace facturas.Components.Data
         public bool DatosCargados { get; set; } = false;
         public decimal VentasHoy { get; set; }
         public decimal VentasMes { get; set; }
-
-        public int TotalArticulosHistorico { get; set; }
-   
+        public decimal TicketPromedio { get; set; }
         public int TotalFacturasHistorico { get; set; }
+        public int TotalArticulosHistorico { get; set; }
+        public decimal VentasTotalesHistoricas { get; set; }
         public string MejorMesNombre { get; set; } = "---";
         public int MejorMesCantidad { get; set; } = 0;
         public string ProductoMasVendido { get; set; } = "---";

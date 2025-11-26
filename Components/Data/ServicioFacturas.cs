@@ -288,17 +288,36 @@ namespace facturas.Components.Data
             var resultMes = await cmdMes.ExecuteScalarAsync();
             stats.VentasMes = (resultMes != null && resultMes != DBNull.Value) ? Convert.ToDecimal(resultMes) : 0;
 
+            var cmdCountMes = cx.CreateCommand();
+            cmdCountMes.CommandText = @"
+                SELECT COUNT(*) FROM facturas 
+                WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now', 'localtime')";
+            var resultCount = await cmdCountMes.ExecuteScalarAsync();
+            int totalFacturasMes = (resultCount != null && resultCount != DBNull.Value) ? Convert.ToInt32(resultCount) : 0;
+
+            if (totalFacturasMes > 0)
+            {
+                stats.TicketPromedio = stats.VentasMes / totalFacturasMes;
+            }
+            else
+            {
+                stats.TicketPromedio = 0;
+            }
+
             var cmdTotal = cx.CreateCommand();
             cmdTotal.CommandText = "SELECT COUNT(*) FROM facturas";
             var resultTotal = await cmdTotal.ExecuteScalarAsync();
             stats.TotalFacturasHistorico = (resultTotal != null && resultTotal != DBNull.Value) ? Convert.ToInt32(resultTotal) : 0;
 
-            // --- NUEVO: TOTAL ARTICULOS HISTÓRICO (TODOS) ---
             var cmdArtsHist = cx.CreateCommand();
             cmdArtsHist.CommandText = "SELECT SUM(cantidad) FROM articulos";
             var resArtsHist = await cmdArtsHist.ExecuteScalarAsync();
             stats.TotalArticulosHistorico = (resArtsHist != null && resArtsHist != DBNull.Value) ? Convert.ToInt32(resArtsHist) : 0;
-            // ------------------------------------------------
+
+            var cmdVentasHist = cx.CreateCommand();
+            cmdVentasHist.CommandText = "SELECT SUM(cantidad * precio) FROM articulos";
+            var resVentasHist = await cmdVentasHist.ExecuteScalarAsync();
+            stats.VentasTotalesHistoricas = (resVentasHist != null && resVentasHist != DBNull.Value) ? Convert.ToDecimal(resVentasHist) : 0;
 
             var cmdMejorMes = cx.CreateCommand();
             cmdMejorMes.CommandText = @"

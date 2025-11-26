@@ -100,7 +100,12 @@ else
                     <h2 style="margin: 0; color: #795548;">@stats.TotalArticulosHistorico</h2>
                     <small style="color: #999; font-size: 0.8em;">Histórico total</small>
                 </div>
-                <div style="flex: 1;"></div>
+
+                <div style="flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <h5 style="margin: 0 0 10px 0; color: #666;">Ingresos Totales</h5>
+                    <h2 style="margin: 0; color: #2e7d32;">@FormatoMoneda(stats.VentasTotalesHistoricas)</h2>
+                    <small style="color: #999; font-size: 0.8em;">Ventas acumuladas desde el inicio</small>
+                </div>
             </div>
 
             <div style="border: 1px solid #ddd; border-radius: 8px; padding: 0; background-color: white; overflow: hidden;">
