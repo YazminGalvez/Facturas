@@ -401,6 +401,30 @@ namespace facturas.Components.Data
                 stats.UltimasFacturas.Add(f);
             }
 
+            var cmdHist = cx.CreateCommand(); 
+            cmdHist.CommandText = @"
+                SELECT strftime('%Y-%m', f.fecha) as mes, SUM(a.cantidad * a.precio) 
+                FROM facturas f 
+                JOIN articulos a ON f.id = a.facturaId 
+                WHERE f.fecha >= date('now', '-5 months', 'start of month')
+                GROUP BY mes 
+                ORDER BY mes";
+
+            using (var rd = await cmdHist.ExecuteReaderAsync())
+            {
+                while (await rd.ReadAsync())
+                {
+                    string mesStr = rd.GetString(0);
+                    DateTime dt = DateTime.ParseExact(mesStr, "yyyy-MM", CultureInfo.InvariantCulture);
+                    string nombreMes = dt.ToString("MMM", new CultureInfo("es-ES")).ToUpper(); // Ej: NOV
+
+                    stats.HistoricoVentas.Add(new DatoGrafico
+                    {
+                        Etiqueta = nombreMes,
+                        Valor = rd.GetDecimal(1)
+                    });
+                }
+            }
             stats.DatosCargados = true;
             return stats;
         }

@@ -6,6 +6,49 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
+<style>
+    .chart-container {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        height: 250px;
+        padding-top: 20px;
+        gap: 5px;
+    }
+
+    .bar-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        justify-content: flex-end;
+        height: 100%;
+    }
+
+    .bar {
+        width: 100%;
+        max-width: 30px;
+        background: linear-gradient(180deg, #4facfe 0%, #00f2fe 100%);
+        border-radius: 4px 4px 0 0;
+        transition: height 1s ease-out;
+        min-height: 4px;
+    }
+
+    .bar-label {
+        font-size: 0.7rem;
+        color: #777;
+        margin-top: 5px;
+        font-weight: bold;
+    }
+
+    .bar-value {
+        font-size: 0.65rem;
+        color: #333;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+</style>
+
 <h3>Tablero de Control</h3>
 
 @if (stats == null || !stats.DatosCargados)
@@ -16,25 +59,25 @@ else
 {
     <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px;">
 
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; flex: 1; min-width: 200px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Facturas de HOY</h5>
             <h2 style="margin: 0; color: #2e7d32;">@FormatoMoneda(stats.VentasHoy)</h2>
             <small style="color: #999; font-size: 0.8em;">Actualizado: @DateTime.Now.ToString("HH:mm:ss")</small>
         </div>
 
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; flex: 1; min-width: 200px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Ingresos este Mes</h5>
             <h2 style="margin: 0; color: #1976d2;">@FormatoMoneda(stats.VentasMes)</h2>
             <small style="color: #999; font-size: 0.8em;">Actualizado: @DateTime.Now.ToString("HH:mm:ss")</small>
         </div>
 
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; flex: 1; min-width: 200px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 250px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 10px 0; color: #666;">Artículo Más Vendido</h5>
             <h2 style="margin: 0; color: #e65100; font-size: 1.5em; word-wrap: break-word;">@stats.ProductoMasVendido</h2>
             <small style="color: #999; font-size: 0.8em;">Cantidad vendida: @stats.CantidadProductoMasVendido</small>
         </div>
 
-        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 500px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+        <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; width: 530px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
             <h5 style="margin: 0 0 20px 0; color: #002f6c; font-weight: bold;">🥇 Top Usuarios</h5>
             <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #eee; margin-bottom: 10px;">
                 <span style="color: #333; font-weight: 500;">Mayor Facturador:</span>
@@ -94,17 +137,45 @@ else
             </table>
         </div>
 
-        <div style="flex: 0 0 500px; width: 500px; display: flex; gap: 20px;">
-            <div style="flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                <h5 style="margin: 0 0 10px 0; color: #666;">Total Facturas</h5>
-                <h2 style="margin: 0; color: #607d8b;">@stats.TotalFacturasHistorico</h2>
-                <small style="color: #999; font-size: 0.8em;">Histórico total</small>
+        <div style="width: 500px; min-width: 500px; display: flex; flex-direction: column; gap: 20px;">
+            <div style="display: flex; gap: 20px;">
+                <div style="flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <h5 style="margin: 0 0 10px 0; color: #666;">Total Facturas</h5>
+                    <h2 style="margin: 0; color: #607d8b;">@stats.TotalFacturasHistorico</h2>
+                    <small style="color: #999; font-size: 0.8em;">Histórico total</small>
+                </div>
+
+                <div style="flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <h5 style="margin: 0 0 10px 0; color: #666;">Mejor Mes Histórico</h5>
+                    <h2 style="margin: 0; color: #009688; font-size: 1.3em;">@stats.MejorMesNombre</h2>
+                    <small style="color: #999; font-size: 0.8em;">Récord: @stats.MejorMesCantidad facturas</small>
+                </div>
             </div>
 
-            <div style="flex: 1; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-                <h5 style="margin: 0 0 10px 0; color: #666;">Mejor Mes Histórico</h5>
-                <h2 style="margin: 0; color: #009688; font-size: 1.5em;">@stats.MejorMesNombre</h2>
-                <small style="color: #999; font-size: 0.8em;">Récord: @stats.MejorMesCantidad facturas</small>
+            <div style="border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                <h5 style="margin: 0 0 10px 0; color: #666;">Historial de Ventas</h5>
+
+                @if (stats.HistoricoVentas.Any())
+                {
+                    var maxVal = stats.HistoricoVentas.Max(x => x.Valor);
+                    if (maxVal == 0) maxVal = 1;
+
+                    <div class="chart-container">
+                        @foreach (var item in stats.HistoricoVentas)
+                        {
+                            var altura = (item.Valor / maxVal) * 100;
+                            <div class="bar-group">
+                                <span class="bar-value">@((item.Valor / 1000).ToString("0.#"))k</span>
+                                <div class="bar" style="height: @altura%;"></div>
+                                <span class="bar-label">@item.Etiqueta</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p style="text-align:center; color:#999; padding: 20px;">No hay datos suficientes para el gráfico.</p>
+                }
             </div>
         </div>
 

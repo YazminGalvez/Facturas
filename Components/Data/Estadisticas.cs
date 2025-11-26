@@ -18,5 +18,13 @@ namespace facturas.Components.Data
         public int CantidadFacturasMasActivo { get; set; } = 0;
 
         public List<Facturas> UltimasFacturas { get; set; } = new List<Facturas>();
+
+        public List<DatoGrafico> HistoricoVentas { get; set; } = new List<DatoGrafico>();
+    }
+
+    public class DatoGrafico
+    {
+        public string Etiqueta { get; set; } 
+        public decimal Valor { get; set; }   
     }
 }
