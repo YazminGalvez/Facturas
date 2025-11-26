@@ -7,6 +7,9 @@ namespace facturas.Components.Data
         public bool DatosCargados { get; set; } = false;
         public decimal VentasHoy { get; set; }
         public decimal VentasMes { get; set; }
+
+        public int TotalArticulosHistorico { get; set; }
+   
         public int TotalFacturasHistorico { get; set; }
         public string MejorMesNombre { get; set; } = "---";
         public int MejorMesCantidad { get; set; } = 0;
@@ -18,13 +21,20 @@ namespace facturas.Components.Data
         public int CantidadFacturasMasActivo { get; set; } = 0;
 
         public List<Facturas> UltimasFacturas { get; set; } = new List<Facturas>();
-
+        public List<ProductoTop> TopProductos { get; set; } = new List<ProductoTop>();
         public List<DatoGrafico> HistoricoVentas { get; set; } = new List<DatoGrafico>();
+    }
+
+    public class ProductoTop
+    {
+        public string Nombre { get; set; }
+        public int Cantidad { get; set; }
+        public decimal TotalGenerado { get; set; }
     }
 
     public class DatoGrafico
     {
-        public string Etiqueta { get; set; } 
-        public decimal Valor { get; set; }   
+        public string Etiqueta { get; set; }
+        public decimal Valor { get; set; }
     }
 }

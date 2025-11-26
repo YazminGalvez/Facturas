@@ -293,6 +293,13 @@ namespace facturas.Components.Data
             var resultTotal = await cmdTotal.ExecuteScalarAsync();
             stats.TotalFacturasHistorico = (resultTotal != null && resultTotal != DBNull.Value) ? Convert.ToInt32(resultTotal) : 0;
 
+            // --- NUEVO: TOTAL ARTICULOS HISTÓRICO (TODOS) ---
+            var cmdArtsHist = cx.CreateCommand();
+            cmdArtsHist.CommandText = "SELECT SUM(cantidad) FROM articulos";
+            var resArtsHist = await cmdArtsHist.ExecuteScalarAsync();
+            stats.TotalArticulosHistorico = (resArtsHist != null && resArtsHist != DBNull.Value) ? Convert.ToInt32(resArtsHist) : 0;
+            // ------------------------------------------------
+
             var cmdMejorMes = cx.CreateCommand();
             cmdMejorMes.CommandText = @"
                 SELECT strftime('%Y-%m', fecha) as mes, COUNT(*) as total 
@@ -363,6 +370,25 @@ namespace facturas.Components.Data
                 }
             }
 
+            var cmdTopList = cx.CreateCommand();
+            cmdTopList.CommandText = @"
+                SELECT nombre, SUM(cantidad) as total
+                FROM articulos
+                GROUP BY nombre
+                ORDER BY total DESC
+                LIMIT 5";
+            using (var readerTop = await cmdTopList.ExecuteReaderAsync())
+            {
+                while (await readerTop.ReadAsync())
+                {
+                    stats.TopProductos.Add(new ProductoTop
+                    {
+                        Nombre = readerTop.GetString(0),
+                        Cantidad = readerTop.GetInt32(1)
+                    });
+                }
+            }
+
             var cmdList = cx.CreateCommand();
             cmdList.CommandText = "SELECT id, fecha, cliente FROM facturas ORDER BY id DESC LIMIT 5";
 
@@ -401,7 +427,7 @@ namespace facturas.Components.Data
                 stats.UltimasFacturas.Add(f);
             }
 
-            var cmdHist = cx.CreateCommand(); 
+            var cmdHist = cx.CreateCommand();
             cmdHist.CommandText = @"
                 SELECT strftime('%Y-%m', f.fecha) as mes, SUM(a.cantidad * a.precio) 
                 FROM facturas f 
@@ -416,7 +442,7 @@ namespace facturas.Components.Data
                 {
                     string mesStr = rd.GetString(0);
                     DateTime dt = DateTime.ParseExact(mesStr, "yyyy-MM", CultureInfo.InvariantCulture);
-                    string nombreMes = dt.ToString("MMM", new CultureInfo("es-ES")).ToUpper(); // Ej: NOV
+                    string nombreMes = dt.ToString("MMM", new CultureInfo("es-ES")).ToUpper();
 
                     stats.HistoricoVentas.Add(new DatoGrafico
                     {
@@ -425,6 +451,7 @@ namespace facturas.Components.Data
                     });
                 }
             }
+
             stats.DatosCargados = true;
             return stats;
         }
