@@ -1,155 +1,75 @@
 ﻿@page "/ListaFacturas"
 @using facturas.Components.Data
 @using FacturaModel = facturas.Components.Data.Facturas
-@using Microsoft.AspNetCore.Components
-@using System.Linq
+@inject ServicioFacturas ServicioFacturas
+@inject NavigationManager Navegacion
 @rendermode InteractiveServer
 
-<style>
-    .seccion-baja {
-        border: 1px solid black;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #ffffff;
-    }
+<PageTitle>Historial de Facturas</PageTitle>
 
-    .tabla-registro {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-        .tabla-registro th, .tabla-registro td {
-            border: 1px solid black;
-            padding: 4px;
-            text-align: left;
-            font-size: 0.9em;
-        }
-
-        .tabla-registro th {
-            background-color: #dddddd;
-            font-weight: normal;
-        }
-
-    .pie-tabla {
-        font-weight: bold;
-        text-align: right;
-        padding: 5px 0;
-        border-top: 2px solid black;
-        margin-top: 5px;
-        font-size: 1.1em;
-    }
-
-    .btn-simple {
-        background-color: #90a4ae;
-        color: black;
-        border: 1px solid #455a64;
-        padding: 6px 10px;
-        cursor: pointer;
-        font-size: 0.9em;
-    }
-
-    .btn-eliminar-simple {
-        background-color: #f44336;
-        color: white;
-        border: none;
-        padding: 4px 8px;
-    }
-
-    .btn-editar-simple {
-        background-color: #ff9800;
-        color: black;
-        border: 1px solid #e65100;
-        padding: 6px 10px;
-        cursor: pointer;
-        font-size: 0.9em;
-    }
-
-    .enlace-detalle {
-        color: #007bff;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
-    .campo-texto {
-        padding: 5px;
-        border: 1px solid #333;
-    }
-</style>
-
-<h1>Historial de Facturas Guardadas</h1>
-
-<div class="seccion-baja" style="display: flex; gap: 10px; align-items: center;">
-    <label>Filtrar por Cliente:</label>
-
-    <input type="text" @bind="filtroCliente" @oninput="FiltrarFacturas" class="campo-texto" style="width: 300px;" />
-
-    <button @onclick="LimpiarFiltro" class="btn-simple">Limpiar</button>
-</div>
-
-@if (facturas == null)
-{
-    <p>Cargando registros...</p>
-}
-else
-{
-    <div style="text-align: center; margin-bottom: 20px;">
-        <button @onclick='() => Navegacion.NavigateTo("/Facturas")'
-                class="btn-simple"
-                style="background-color: #007bff; color: white; padding: 10px 20px; margin-right: 10px;">
-            Volver a Crear Factura
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+    <h1>Historial</h1>
+    <div style="display: flex; gap: 8px;">
+        <button @onclick='() => Navegacion.NavigateTo("/Facturas")' class="btn-m3">
+            + Nueva Factura
         </button>
-        <button @onclick='() => Navegacion.NavigateTo("/ReporteSat")'
-                class="btn-simple"
-                style="background-color: #4CAF50; color: white; padding: 10px 20px;">
-            Ver Reporte Anual (SAT)
+        <button @onclick='() => Navegacion.NavigateTo("/ReporteSat")' class="btn-m3 btn-m3-tonal">
+            Ver Reportes
         </button>
     </div>
+</div>
 
-    @if (facturasFiltradas.Count == 0)
+<div class="card-m3">
+    <div class="input-group-m3">
+        <label>FILTRAR POR CLIENTE</label>
+        <input type="text" @bind="filtroCliente" @oninput="FiltrarFacturas" class="input-m3" placeholder="Buscar..." />
+    </div>
+
+    @if (facturasFiltradas == null)
     {
-        <p>No hay facturas que coincidan con el filtro o el sistema está vacío.</p>
+        <p>Cargando...</p>
+    }
+    else if (facturasFiltradas.Count == 0)
+    {
+        <p style="padding: 20px; text-align: center; color: #888;">No se encontraron facturas.</p>
     }
     else
     {
-        @foreach (var f in facturasFiltradas)
-        {
-            <div class="seccion-baja" style="background-color: #f7f7f7;">
-                <div style="border-bottom: 1px dashed #666; padding-bottom: 5px; margin-bottom: 10px;">
-                    <h4 style="margin: 0;">
-                        Factura ID:
-
-                        <a @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{f.Id}")' class="enlace-detalle">
-                            #@f.Id
-                        </a>
-                    </h4>
-                    <p style="margin: 5px 0 0 0;">Cliente: <strong>@f.Cliente</strong></p>
-                    <p style="margin: 0;">Fecha: <strong>@f.Fecha.ToShortDateString()</strong></p>
-                </div>
-
-                <div class="pie-tabla"
-                     style="margin-top: 0;">
-                    TOTAL: <span>@FormatoMoneda(f.Total)</span>
-                </div>
-
-                <div style="margin-top: 10px;">
-                    <button @onclick='() => Navegacion.NavigateTo($"/Facturas/{f.Id}")'
-                            class="btn-simple btn-editar-simple"
-                            style="margin-right: 10px;">
-                        Editar Factura
-                    </button>
-                    <button @onclick="() => EliminarFactura(f)" class="btn-simple btn-eliminar-simple">
-                        Eliminar Factura
-                    </button>
-                </div>
-            </div>
-        }
+        <table class="table-m3">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Cliente</th>
+                    <th>Fecha</th>
+                    <th style="text-align: right;">Total</th>
+                    <th style="text-align: right;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var f in facturasFiltradas)
+                {
+                    <tr>
+                        <td>
+                            <a href="/DetalleFactura/@f.Id" style="color: var(--md-sys-color-primary); font-weight: bold; text-decoration: none;">#@f.Id</a>
+                        </td>
+                        <td>@f.Cliente</td>
+                        <td>@f.Fecha.ToShortDateString()</td>
+                        <td style="text-align: right; font-weight: bold;">@FormatoMoneda(f.Total)</td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="btn-icon text-primary" @onclick='() => Navegacion.NavigateTo($"/Facturas/{f.Id}")' title="Editar">✎</button>
+                                <button class="btn-icon text-error" @onclick="() => EliminarFactura(f)" title="Eliminar">🗑</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
     }
-}
+</div>
 
 @code {
-    private List<FacturaModel>
-facturas;
+    private List<FacturaModel> facturas;
     private List<FacturaModel> facturasFiltradas;
     private string filtroCliente = string.Empty;
 
@@ -157,21 +77,6 @@ facturas;
     {
         return monto.ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"));
     }
-
-    [Inject]
-    public NavigationManager Navegacion
-    {
-        get;
-        set;
-    }
-
-    [Inject]
-    public ServicioFacturas ServicioFacturas
-    {
-        get;
-        set;
-    }
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -182,40 +87,23 @@ facturas;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"FATAL ERROR: Falló la conexión/carga inicial de la DB. Verifique Program.cs o permisos. Detalles: {ex.Message}");
+            Console.WriteLine(ex.Message);
             facturas = new List<FacturaModel>();
             facturasFiltradas = new List<FacturaModel>();
         }
     }
 
-
     private void FiltrarFacturas(ChangeEventArgs e)
     {
-        filtroCliente = e.Value?.ToString() ??
-string.Empty;
+        filtroCliente = e.Value?.ToString() ?? string.Empty;
         AplicarFiltro();
     }
 
     private void AplicarFiltro()
     {
-        if (string.IsNullOrWhiteSpace(filtroCliente))
-        {
-            facturasFiltradas = facturas;
-        }
-        else
-        {
-            facturasFiltradas = facturas
-                .Where(f => f.Cliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-        }
+        if (string.IsNullOrWhiteSpace(filtroCliente)) facturasFiltradas = facturas;
+        else facturasFiltradas = facturas.Where(f => f.Cliente.Contains(filtroCliente, StringComparison.OrdinalIgnoreCase)).ToList();
         StateHasChanged();
-    }
-
-
-    private void LimpiarFiltro()
-    {
-        filtroCliente = string.Empty;
-        AplicarFiltro();
     }
 
     private async Task EliminarFactura(FacturaModel f)
