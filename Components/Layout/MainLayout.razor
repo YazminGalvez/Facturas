@@ -1,9 +1,27 @@
 ﻿@inherits LayoutComponentBase
 
-@Body
+<div class="page">
+    <header class="top-app-bar">
+        <a href="/" class="brand">
+            <span style="font-size: 1.5rem;">🔴</span> FacturaApp
+        </a>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
+        <nav>
+            <a href="/">Inicio</a>
+            <a href="/Facturas">Facturar</a>
+            <a href="/ListaFacturas">Historial</a>
+            <a href="/ReporteSat">Reportes</a>
+            <a href="/Dashboard">Dashboard</a>
+        </nav>
+    </header>
+
+    <main class="content-container">
+        @Body
+    </main>
+</div>
+
+<div id="blazor-error-ui">
+    Ha ocurrido un error inesperado.
+    <a href="" class="reload">Recargar</a>
     <span class="dismiss">🗙</span>
 </div>
