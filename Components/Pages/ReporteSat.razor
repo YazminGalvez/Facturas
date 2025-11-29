@@ -9,162 +9,79 @@
 @inject ServicioFacturas ServicioFacturas
 @inject NavigationManager Navegacion
 
-<style>
-    .seccion-baja {
-        border: 1px solid black;
-        padding: 15px;
-        margin-bottom: 20px;
-        background-color: #f7f7f7;
-    }
+<PageTitle>Reporte Anual</PageTitle>
 
-    .campo-texto {
-        padding: 5px;
-        border: 1px solid #333;
-    }
+<h1>Reporte Anual</h1>
 
-    .btn-simple {
-        background-color: #90a4ae;
-        color: black;
-        border: 1px solid #455a64;
-        padding: 6px 10px;
-        cursor: pointer;
-        font-size: 0.9em;
-    }
-
-    .tabla-registro {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 10px;
-    }
-
-        .tabla-registro th, .tabla-registro td {
-            border: 1px solid black;
-            padding: 4px;
-            text-align: left;
-            font-size: 0.9em;
-        }
-
-        .tabla-registro th {
-            background-color: #dddddd;
-            font-weight: normal;
-        }
-
-    .pie-tabla {
-        font-weight: bold;
-        text-align: right;
-        padding: 5px 0;
-        border-top: 2px solid black;
-        margin-top: 5px;
-        font-size: 1.1em;
-    }
-
-    .btn-reporte {
-        background-color: #4CAF50;
-        color: white;
-        border-color: #388E3C;
-    }
-
-    .enlace-detalle {
-        color: #007bff;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
-    .msg-error {
-        color: #aa0000;
-        margin-top: 10px;
-        border: 1px solid #aa0000;
-        background-color: #ffdddd;
-        padding: 5px;
-        font-size: 0.9em;
-    }
-</style>
-
-<h1>Reporte Anual de Ingresos</h1>
-
-<div class="seccion-baja" style="display: flex; gap: 10px; align-items: center; background-color: #ffffff;">
-    <label>Seleccionar Año:</label>
-
-    <input type="number" min="2000" max="@DateTime.Now.Year" @bind="anioSeleccionado" class="campo-texto" style="width: 120px;" />
-
-    <button @onclick="GenerarReporte" class="btn-simple btn-reporte">
-        Generar Reporte
-    </button>
+<div class="card-m3">
+    <div style="display: flex; gap: 16px; align-items: flex-end;">
+        <div class="input-group-m3" style="margin-bottom: 0;">
+            <label>SELECCIONAR AÑO</label>
+            <input type="number" min="2000" max="@DateTime.Now.Year" @bind="anioSeleccionado" class="input-m3" style="width: 150px;" />
+        </div>
+        <button @onclick="GenerarReporte" class="btn-m3">
+            Generar Reporte
+        </button>
+    </div>
 </div>
 
 @if (cargando)
 {
-    <p>Cargando información para el año @anioSeleccionado...</p>
+    <p>Cargando...</p>
 }
-else if (reporte == null)
+else if (reporte != null)
 {
-    <p>Seleccione un año y haga clic en 'Generar Reporte'.</p>
-}
-else
-{
-    <div class="seccion-baja" style="background-color: #f7f7f7; padding: 25px;">
-        <h2 style="margin-top: 0;">Total Anual: @FormatoMoneda(reporte.TotalAnual)</h2>
+    <div class="card-m3" style="background-color: var(--md-sys-color-primary); color: white; border: none;">
+        <span style="opacity: 0.8; font-size: 0.9em;">INGRESO TOTAL ANUAL (@anioSeleccionado)</span>
+        <div style="font-size: 2.5em; font-weight: bold;">@FormatoMoneda(reporte.TotalAnual)</div>
+    </div>
 
-        @if (!reporte.Meses.Any(m => m.Facturas.Any()))
+    @if (!reporte.Meses.Any(m => m.Facturas.Any()))
+    {
+        <div class="card-m3" style="text-align: center; color: #888;">No se encontraron datos para este año.</div>
+    }
+    else
+    {
+        @foreach (var mes in reporte.Meses.Where(m => m.Facturas.Any()))
         {
-            <p class="msg-error" style="background-color: #fff3cd; color: #856404; border-color: #ffeeba; padding: 10px; border-radius: 4px; margin-top: 15px;">
-                ! No se encontraron facturas registradas para el año @reporte.Anio.
-            </p>
-        }
-        else
-        {
-            @foreach (var mes in reporte.Meses.Where(m => m.Facturas.Any()))
-            {
-                <div style="margin-top: 25px; border: 1px solid #ccc; padding: 10px; background-color: #ffffff;">
-                    <div style="border-bottom: 2px solid #333; margin-bottom: 10px; padding-bottom: 5px;">
-                        <h4 style="margin: 0;">Mes: @mes.NombreMes</h4>
-                        <p style="margin: 5px 0 0 0;">Facturas Registradas: <strong>@mes.Facturas.Count</strong></p>
-                    </div>
-
-                    <table class="tabla-registro" style="font-size: 0.8em;">
-                        <thead>
-                            <tr style="background-color: #cccccc;">
-                                <th style="width: 20%;">ID Factura</th>
-                                <th style="width: 35%;">Cliente</th>
-                                <th style="width: 25%; text-align: right;">Fecha</th>
-                                <th style="width: 20%; text-align: right;">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var factura in mes.Facturas)
-                            {
-                                <tr>
-                                    <td>
-                                        <a @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{factura.Id}")' class="enlace-detalle">
-                                            #@factura.Id
-                                        </a>
-                                    </td>
-                                    <td>@factura.Cliente</td>
-                                    <td style="text-align: right;">@factura.Fecha.ToShortDateString()</td>
-                                    <td style="text-align: right;">@FormatoMoneda(factura.Total)</td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-
-                    <div class="pie-tabla" style="font-size: 1.0em; margin-top: 10px; border-top: 1px dashed #666;">
-                        TOTAL @mes.NombreMes: <span>@FormatoMoneda(mes.TotalFacturado)</span>
-                    </div>
+            <div class="card-m3">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 16px;">
+                    <h3 style="margin: 0; color: var(--md-sys-color-primary);">@mes.NombreMes</h3>
+                    <span style="font-weight: bold; color: #444;">@mes.Facturas.Count facturas</span>
                 </div>
-            }
-        }
-    </div>
 
-    <div style="text-align: center; margin-top: 20px;">
-        <button @onclick='() => Navegacion.NavigateTo("/ListaFacturas")' class="btn-simple" style="background-color: #007bff; color: white; padding: 10px 20px;">
-            Volver al Historial
-        </button>
-    </div>
+                <table class="table-m3">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th style="text-align: right;">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var factura in mes.Facturas)
+                        {
+                            <tr>
+                                <td><a href="/DetalleFactura/@factura.Id">#@factura.Id</a></td>
+                                <td>@factura.Cliente</td>
+                                <td>@factura.Fecha.ToShortDateString()</td>
+                                <td style="text-align: right;">@FormatoMoneda(factura.Total)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <div style="text-align: right; margin-top: 16px; font-weight: bold;">
+                    Total @mes.NombreMes: <span style="color: var(--md-sys-color-primary);">@FormatoMoneda(mes.TotalFacturado)</span>
+                </div>
+            </div>
+        }
+    }
 }
 
 @code {
     private int anioSeleccionado = DateTime.Now.Year;
-    private ReporteAnualModel reporte; 
+    private ReporteAnualModel reporte;
     private bool cargando = false;
 
     private string FormatoMoneda(decimal monto)
@@ -179,11 +96,6 @@ else
         return nombre.Substring(0, 1).ToUpper() + nombre.Substring(1);
     }
 
-    protected override Task OnInitializedAsync()
-    {
-        return Task.CompletedTask;
-    }
-
     private async Task GenerarReporte()
     {
         cargando = true;
@@ -193,23 +105,15 @@ else
         try
         {
             var facturasDelAnio = await ServicioFacturas.ObtenerFacturasAnuales(anioSeleccionado);
-
             reporte = new ReporteAnualModel { Anio = anioSeleccionado };
-
-            reporte.Meses = Enumerable.Range(1, 12)
-                .Select(m =>
-                {
-                    var mesReporte = new ReporteMensualModel(m, ObtenerNombreMes(m));
-                    mesReporte.Facturas.AddRange(facturasDelAnio.Where(f => f.Fecha.Month == m));
-                    return mesReporte;
-                })
-                .ToList();
+            reporte.Meses = Enumerable.Range(1, 12).Select(m =>
+            {
+                var mesReporte = new ReporteMensualModel(m, ObtenerNombreMes(m));
+                mesReporte.Facturas.AddRange(facturasDelAnio.Where(f => f.Fecha.Month == m));
+                return mesReporte;
+            }).ToList();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al generar el reporte: {ex.Message}");
-            reporte = null;
-        }
+        catch { reporte = null; }
 
         cargando = false;
         StateHasChanged();
