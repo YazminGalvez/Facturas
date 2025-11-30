@@ -3,6 +3,7 @@
 @using FacturaModel = facturas.Components.Data.Facturas
 @inject ServicioFacturas ServicioFacturas
 @inject NavigationManager Navegacion
+@inject IJSRuntime JS
 @rendermode InteractiveServer
 
 <PageTitle>Historial de Facturas</PageTitle>
@@ -12,6 +13,9 @@
     <div style="display: flex; gap: 8px;">
         <button @onclick='() => Navegacion.NavigateTo("/Facturas")' class="btn-m3">
             + Nueva Factura
+        </button>
+        <button @onclick='() => Navegacion.NavigateTo("/FacturasArchivadas")' class="btn-m3 btn-m3-tonal" title="Ver Baúl">
+            📦 Archivo
         </button>
         <button @onclick='() => Navegacion.NavigateTo("/ReporteSat")' class="btn-m3 btn-m3-tonal">
             Ver Reportes
@@ -31,7 +35,7 @@
     }
     else if (facturasFiltradas.Count == 0)
     {
-        <p style="padding: 20px; text-align: center; color: #888;">No se encontraron facturas.</p>
+        <p style="padding: 20px; text-align: center; color: #888;">No se encontraron facturas activas.</p>
     }
     else
     {
@@ -57,6 +61,8 @@
                         <td style="text-align: right; font-weight: bold;">@FormatoMoneda(f.Total)</td>
                         <td style="text-align: right;">
                             <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="btn-icon" style="color: #666;" @onclick="() => ArchivarFactura(f)" title="Archivar">📦</button>
+
                                 <button class="btn-icon text-primary" @onclick='() => Navegacion.NavigateTo($"/Facturas/{f.Id}")' title="Editar">✎</button>
                                 <button class="btn-icon text-error" @onclick="() => EliminarFactura(f)" title="Eliminar">🗑</button>
                             </div>
@@ -79,6 +85,11 @@
     }
 
     protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
     {
         try
         {
@@ -106,10 +117,20 @@
         StateHasChanged();
     }
 
+    private async Task ArchivarFactura(FacturaModel f)
+    { 
+        await ServicioFacturas.CambiarEstadoArchivo(f.Id, true);
+        await CargarDatos();
+    }
+
     private async Task EliminarFactura(FacturaModel f)
     {
-        await ServicioFacturas.EliminarFactura(f);
-        facturas = await ServicioFacturas.ObtenerFacturas();
-        AplicarFiltro();
+  
+        bool confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar permanentemente la factura #{f.Id}?");
+        if (confirmado)
+        {
+            await ServicioFacturas.EliminarFactura(f);
+            await CargarDatos();
+        }
     }
 }

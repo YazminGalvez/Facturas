@@ -1,0 +1,158 @@
+﻿@page "/FacturasArchivadas"
+@using facturas.Components.Data
+@using FacturaModel = facturas.Components.Data.Facturas
+@inject ServicioFacturas ServicioFacturas
+@inject NavigationManager Navegacion
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<PageTitle>Facturas Archivadas</PageTitle>
+
+<div style="margin-bottom: 24px;">
+    <button @onclick="MenuPrincipal" style="background:none; border:none; cursor:pointer; color: #666; font-size: 0.9em; display: flex; align-items: center; gap: 5px;">
+        <span>←</span> Volver al menú principal
+    </button>
+</div>
+
+<h1 style="color: #666; display: flex; align-items: center; gap: 10px;">
+    <span>📦</span> Facturas Archivadas
+</h1>
+
+@if (!autenticado)
+{
+    <div class="card-m3" style="max-width: 400px; margin: 40px auto; text-align: center;">
+        <h3 style="color: var(--md-sys-color-primary); margin-bottom: 8px;">🔒 Acceso Restringido</h3>
+        <p style="color: #666; margin-bottom: 24px;">Ingresa la contraseña maestra.</p>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div style="background-color: #fce8e6; color: #ba1a1a; padding: 10px; border-radius: 8px; margin-bottom: 16px;">
+                @mensajeError
+            </div>
+        }
+
+        <div class="input-group-m3">
+            <input type="password" class="input-m3" @bind="contraseñaIngresada" @onkeypress="VerificarEnter" placeholder="Contraseña..." style="text-align: center;" />
+        </div>
+
+        <button class="btn-m3" style="width: 100%; margin-top: 10px;" @onclick="VerificarContraseña">
+            Desbloquear
+        </button>
+    </div>
+}
+else
+{
+    <div class="card-m3">
+
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;">
+            <button class="btn-m3 btn-m3-tonal" @onclick="Bloquear" title="Cerrar sesión">
+                🔒 Bloquear
+            </button>
+        </div>
+
+        @if (listaFacturas == null)
+        {
+            <p>Cargando...</p>
+        }
+        else if (listaFacturas.Count == 0)
+        {
+            <div style="text-align: center; padding: 40px; color: #888;">
+                <span>No hay facturas en el archivo.</span>
+            </div>
+        }
+        else
+        {
+            <table class="table-m3">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th style="text-align: right;">Total</th>
+                        <th style="text-align: right;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var f in listaFacturas)
+                    {
+                        <tr>
+                            <td>#@f.Id</td>
+                            <td>@f.Fecha.ToString("dd/MM/yyyy")</td>
+                            <td>@f.Cliente</td>
+                            <td style="text-align: right; font-weight: bold;">@FormatoMoneda(f.Total)</td>
+                            <td style="text-align: right;">
+                                <button class="btn-m3" style="padding: 6px 16px; font-size: 0.85em; background-color: #2e7d32;"
+                                        @onclick="() => DesarchivarFactura(f)">
+                                    ♻️ Recuperar
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div style="margin-top: 16px; font-size: 0.9em; color: #666; text-align: right;">
+                Total archivadas: @listaFacturas.Count
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<FacturaModel> listaFacturas;
+
+    private bool autenticado = false;
+    private string contraseñaIngresada = "";
+    private string mensajeError = "";
+
+    private const string CONTRASEÑA_CORRECTA = "admin123";
+
+    private string FormatoMoneda(decimal monto)
+    {
+        return monto.ToString("C2", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"));
+    }
+
+    private async Task VerificarContraseña()
+    {
+        if (contraseñaIngresada == CONTRASEÑA_CORRECTA)
+        {
+            autenticado = true;
+            mensajeError = "";
+            await CargarFacturas();
+        }
+        else
+        {
+            mensajeError = "Contraseña incorrecta";
+            contraseñaIngresada = "";
+        }
+    }
+
+    private async Task VerificarEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await VerificarContraseña();
+    }
+
+    private async Task CargarFacturas()
+    {
+        listaFacturas = await ServicioFacturas.ObtenerFacturasArchivadas();
+    }
+
+    private async Task DesarchivarFactura(FacturaModel f)
+    {
+       
+        await ServicioFacturas.CambiarEstadoArchivo(f.Id, false);
+        await CargarFacturas();
+    }
+
+    private void Bloquear()
+    {
+        autenticado = false;
+        contraseñaIngresada = "";
+        listaFacturas = null;
+    }
+
+    private void MenuPrincipal()
+    {
+        Navegacion.NavigateTo("/ListaFacturas");
+    }
+}

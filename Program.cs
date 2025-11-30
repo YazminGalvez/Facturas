@@ -27,7 +27,6 @@ app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-
 string rutaDb = Path.Combine(AppContext.BaseDirectory, "facturas.db");
 
 using (var cx = new SqliteConnection($"Data Source={rutaDb}"))
@@ -71,6 +70,27 @@ using (var cx = new SqliteConnection($"Data Source={rutaDb}"))
         var alter = cx.CreateCommand();
         alter.CommandText = "ALTER TABLE articulos ADD COLUMN cantidad INTEGER DEFAULT 1";
         alter.ExecuteNonQuery();
+    }
+
+    var checkCmdFact = cx.CreateCommand();
+    checkCmdFact.CommandText = "PRAGMA table_info(facturas)";
+    using var readerFact = checkCmdFact.ExecuteReader();
+    bool tieneArchivada = false;
+    while (readerFact.Read())
+    {
+        if (readerFact.GetString(1).Equals("archivada", StringComparison.OrdinalIgnoreCase))
+        {
+            tieneArchivada = true;
+            break;
+        }
+    }
+    readerFact.Close();
+
+    if (!tieneArchivada)
+    {
+        var alterFact = cx.CreateCommand();
+        alterFact.CommandText = "ALTER TABLE facturas ADD COLUMN archivada INTEGER DEFAULT 0";
+        alterFact.ExecuteNonQuery();
     }
 }
 

@@ -8,6 +8,7 @@ namespace facturas.Components.Data
         public int Id { get; set; }
         public DateTime Fecha { get; set; } = DateTime.Now;
         public string Cliente { get; set; } = "";
+        public bool Archivada { get; set; } = false;
         public List<Articulos> Articulos { get; set; } = new();
 
         public decimal Total

@@ -20,7 +20,7 @@ namespace facturas.Components.Data
             await cx.OpenAsync();
 
             var cmd = cx.CreateCommand();
-            cmd.CommandText = "SELECT id, fecha, cliente FROM facturas ORDER BY id DESC";
+            cmd.CommandText = "SELECT id, fecha, cliente, archivada FROM facturas WHERE archivada = 0 ORDER BY id DESC";
 
             using var rd = await cmd.ExecuteReaderAsync();
             while (await rd.ReadAsync())
@@ -29,7 +29,8 @@ namespace facturas.Components.Data
                 {
                     Id = rd.GetInt32(0),
                     Fecha = DateTime.Parse(rd.GetString(1)),
-                    Cliente = rd.GetString(2)
+                    Cliente = rd.GetString(2),
+                    Archivada = rd.GetBoolean(3)
                 };
 
                 f.Articulos = await ObtenerArticulos(f.Id);
@@ -39,6 +40,47 @@ namespace facturas.Components.Data
             return lista;
         }
 
+        public async Task<List<Facturas>> ObtenerFacturasArchivadas()
+        {
+            var lista = new List<Facturas>();
+
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+
+            var cmd = cx.CreateCommand();
+            cmd.CommandText = "SELECT id, fecha, cliente, archivada FROM facturas WHERE archivada = 1 ORDER BY id DESC";
+
+            using var rd = await cmd.ExecuteReaderAsync();
+            while (await rd.ReadAsync())
+            {
+                var f = new Facturas
+                {
+                    Id = rd.GetInt32(0),
+                    Fecha = DateTime.Parse(rd.GetString(1)),
+                    Cliente = rd.GetString(2),
+                    Archivada = true
+                };
+
+                f.Articulos = await ObtenerArticulos(f.Id);
+                lista.Add(f);
+            }
+
+            return lista;
+        }
+
+        public async Task CambiarEstadoArchivo(int id, bool archivar)
+        {
+            using var cx = new SqliteConnection($"Data Source={RutaDb}");
+            await cx.OpenAsync();
+
+            var cmd = cx.CreateCommand();
+            cmd.CommandText = "UPDATE facturas SET archivada = $estado WHERE id = $id";
+            cmd.Parameters.AddWithValue("$estado", archivar ? 1 : 0);
+            cmd.Parameters.AddWithValue("$id", id);
+
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         public async Task<Facturas> ObtenerFacturaPorId(int id)
         {
             Facturas f = null;
@@ -46,7 +88,7 @@ namespace facturas.Components.Data
             await cx.OpenAsync();
 
             var cmd = cx.CreateCommand();
-            cmd.CommandText = "SELECT id, fecha, cliente FROM facturas WHERE id = $id";
+            cmd.CommandText = "SELECT id, fecha, cliente, archivada FROM facturas WHERE id = $id";
             cmd.Parameters.AddWithValue("$id", id);
 
             using var rd = await cmd.ExecuteReaderAsync();
@@ -56,7 +98,8 @@ namespace facturas.Components.Data
                 {
                     Id = rd.GetInt32(0),
                     Fecha = DateTime.Parse(rd.GetString(1)),
-                    Cliente = rd.GetString(2)
+                    Cliente = rd.GetString(2),
+                    Archivada = rd.GetBoolean(3)
                 };
                 f.Articulos = await ObtenerArticulos(f.Id);
             }
@@ -101,7 +144,7 @@ namespace facturas.Components.Data
             {
                 var cmd = cx.CreateCommand();
                 cmd.Transaction = transaction;
-                cmd.CommandText = "INSERT INTO facturas(fecha, cliente) VALUES($fecha, $cliente); SELECT last_insert_rowid();";
+                cmd.CommandText = "INSERT INTO facturas(fecha, cliente, archivada) VALUES($fecha, $cliente, 0); SELECT last_insert_rowid();";
                 cmd.Parameters.AddWithValue("$fecha", f.Fecha.ToString("yyyy-MM-dd"));
                 cmd.Parameters.AddWithValue("$cliente", f.Cliente);
 
@@ -114,7 +157,7 @@ namespace facturas.Components.Data
                 }
                 else
                 {
-                    throw new InvalidOperationException("Error al guardar la factura. La base de datos no devolvió un ID.");
+                    throw new InvalidOperationException("Error");
                 }
 
                 foreach (var a in f.Articulos)
@@ -136,21 +179,6 @@ namespace facturas.Components.Data
                 transaction.Rollback();
                 throw;
             }
-        }
-
-        private async Task AgregarArticulo(int facturaId, Articulos a)
-        {
-            using var cx = new SqliteConnection($"Data Source={RutaDb}");
-            await cx.OpenAsync();
-
-            var cmd = cx.CreateCommand();
-            cmd.CommandText = "INSERT INTO articulos(facturaId, nombre, cantidad, precio) VALUES($facturaId, $nombre, $cantidad, $precio)";
-            cmd.Parameters.AddWithValue("$facturaId", facturaId);
-            cmd.Parameters.AddWithValue("$nombre", a.Nombre);
-            cmd.Parameters.AddWithValue("$cantidad", a.Cantidad);
-            cmd.Parameters.AddWithValue("$precio", a.Precio);
-
-            await cmd.ExecuteNonQueryAsync();
         }
 
         public async Task EliminarFactura(Facturas f)
@@ -239,9 +267,9 @@ namespace facturas.Components.Data
 
             var cmd = cx.CreateCommand();
             cmd.CommandText = @"
-                SELECT id, fecha, cliente 
+                SELECT id, fecha, cliente, archivada
                 FROM facturas 
-                WHERE strftime('%Y', fecha) = $anio
+                WHERE strftime('%Y', fecha) = $anio AND archivada = 0
                 ORDER BY fecha, id DESC;
             ";
             cmd.Parameters.AddWithValue("$anio", anio.ToString());
@@ -253,7 +281,8 @@ namespace facturas.Components.Data
                 {
                     Id = rd.GetInt32(0),
                     Fecha = DateTime.Parse(rd.GetString(1)),
-                    Cliente = rd.GetString(2)
+                    Cliente = rd.GetString(2),
+                    Archivada = rd.GetBoolean(3)
                 };
 
                 f.Articulos = await ObtenerArticulos(f.Id);
@@ -275,7 +304,7 @@ namespace facturas.Components.Data
                 SELECT SUM(a.cantidad * a.precio) 
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
-                WHERE date(f.fecha) = date('now', 'localtime')";
+                WHERE date(f.fecha) = date('now', 'localtime') AND f.archivada = 0";
             var resultHoy = await cmdHoy.ExecuteScalarAsync();
             stats.VentasHoy = (resultHoy != null && resultHoy != DBNull.Value) ? Convert.ToDecimal(resultHoy) : 0;
 
@@ -284,14 +313,14 @@ namespace facturas.Components.Data
                 SELECT SUM(a.cantidad * a.precio) 
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
-                WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime')";
+                WHERE strftime('%Y-%m', f.fecha) = strftime('%Y-%m', 'now', 'localtime') AND f.archivada = 0";
             var resultMes = await cmdMes.ExecuteScalarAsync();
             stats.VentasMes = (resultMes != null && resultMes != DBNull.Value) ? Convert.ToDecimal(resultMes) : 0;
 
             var cmdCountMes = cx.CreateCommand();
             cmdCountMes.CommandText = @"
                 SELECT COUNT(*) FROM facturas 
-                WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now', 'localtime')";
+                WHERE strftime('%Y-%m', fecha) = strftime('%Y-%m', 'now', 'localtime') AND archivada = 0";
             var resultCount = await cmdCountMes.ExecuteScalarAsync();
             int totalFacturasMes = (resultCount != null && resultCount != DBNull.Value) ? Convert.ToInt32(resultCount) : 0;
 
@@ -305,17 +334,25 @@ namespace facturas.Components.Data
             }
 
             var cmdTotal = cx.CreateCommand();
-            cmdTotal.CommandText = "SELECT COUNT(*) FROM facturas";
+            cmdTotal.CommandText = "SELECT COUNT(*) FROM facturas WHERE archivada = 0";
             var resultTotal = await cmdTotal.ExecuteScalarAsync();
             stats.TotalFacturasHistorico = (resultTotal != null && resultTotal != DBNull.Value) ? Convert.ToInt32(resultTotal) : 0;
 
             var cmdArtsHist = cx.CreateCommand();
-            cmdArtsHist.CommandText = "SELECT SUM(cantidad) FROM articulos";
+            cmdArtsHist.CommandText = @"
+                SELECT SUM(a.cantidad) 
+                FROM articulos a 
+                JOIN facturas f ON f.id = a.facturaId 
+                WHERE f.archivada = 0";
             var resArtsHist = await cmdArtsHist.ExecuteScalarAsync();
             stats.TotalArticulosHistorico = (resArtsHist != null && resArtsHist != DBNull.Value) ? Convert.ToInt32(resArtsHist) : 0;
 
             var cmdVentasHist = cx.CreateCommand();
-            cmdVentasHist.CommandText = "SELECT SUM(cantidad * precio) FROM articulos";
+            cmdVentasHist.CommandText = @"
+                SELECT SUM(a.cantidad * a.precio) 
+                FROM articulos a 
+                JOIN facturas f ON f.id = a.facturaId 
+                WHERE f.archivada = 0";
             var resVentasHist = await cmdVentasHist.ExecuteScalarAsync();
             stats.VentasTotalesHistoricas = (resVentasHist != null && resVentasHist != DBNull.Value) ? Convert.ToDecimal(resVentasHist) : 0;
 
@@ -323,6 +360,7 @@ namespace facturas.Components.Data
             cmdMejorMes.CommandText = @"
                 SELECT strftime('%Y-%m', fecha) as mes, COUNT(*) as total 
                 FROM facturas 
+                WHERE archivada = 0
                 GROUP BY mes 
                 ORDER BY total DESC 
                 LIMIT 1";
@@ -342,9 +380,11 @@ namespace facturas.Components.Data
 
             var cmdTop = cx.CreateCommand();
             cmdTop.CommandText = @"
-                SELECT nombre, SUM(cantidad) as total_vendido
-                FROM articulos
-                GROUP BY nombre
+                SELECT a.nombre, SUM(a.cantidad) as total_vendido
+                FROM articulos a
+                JOIN facturas f ON f.id = a.facturaId
+                WHERE f.archivada = 0
+                GROUP BY a.nombre
                 ORDER BY total_vendido DESC
                 LIMIT 1";
             using (var reader = await cmdTop.ExecuteReaderAsync())
@@ -361,6 +401,7 @@ namespace facturas.Components.Data
                 SELECT f.cliente, SUM(a.cantidad * a.precio) as total
                 FROM facturas f
                 JOIN articulos a ON f.id = a.facturaId
+                WHERE f.archivada = 0
                 GROUP BY f.cliente
                 ORDER BY total DESC
                 LIMIT 1";
@@ -377,6 +418,7 @@ namespace facturas.Components.Data
             cmdActivo.CommandText = @"
                 SELECT cliente, COUNT(id) as total_facts
                 FROM facturas
+                WHERE archivada = 0
                 GROUP BY cliente
                 ORDER BY total_facts DESC
                 LIMIT 1";
@@ -391,9 +433,11 @@ namespace facturas.Components.Data
 
             var cmdTopList = cx.CreateCommand();
             cmdTopList.CommandText = @"
-                SELECT nombre, SUM(cantidad) as total
-                FROM articulos
-                GROUP BY nombre
+                SELECT a.nombre, SUM(a.cantidad) as total
+                FROM articulos a
+                JOIN facturas f ON f.id = a.facturaId
+                WHERE f.archivada = 0
+                GROUP BY a.nombre
                 ORDER BY total DESC
                 LIMIT 5";
             using (var readerTop = await cmdTopList.ExecuteReaderAsync())
@@ -409,7 +453,7 @@ namespace facturas.Components.Data
             }
 
             var cmdList = cx.CreateCommand();
-            cmdList.CommandText = "SELECT id, fecha, cliente FROM facturas ORDER BY id DESC LIMIT 5";
+            cmdList.CommandText = "SELECT id, fecha, cliente FROM facturas WHERE archivada = 0 ORDER BY id DESC LIMIT 5";
 
             var tempLista = new List<Facturas>();
             using (var readerList = await cmdList.ExecuteReaderAsync())
@@ -451,7 +495,7 @@ namespace facturas.Components.Data
                 SELECT strftime('%Y-%m', f.fecha) as mes, SUM(a.cantidad * a.precio) 
                 FROM facturas f 
                 JOIN articulos a ON f.id = a.facturaId 
-                WHERE f.fecha >= date('now', '-5 months', 'start of month')
+                WHERE f.fecha >= date('now', '-5 months', 'start of month') AND f.archivada = 0
                 GROUP BY mes 
                 ORDER BY mes";
 
