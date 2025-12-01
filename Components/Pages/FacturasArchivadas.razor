@@ -105,6 +105,7 @@ else
     private string contraseñaIngresada = "";
     private string mensajeError = "";
 
+    // CONFIGURA TU CLAVE AQUÍ
     private const string CONTRASEÑA_CORRECTA = "admin123";
 
     private string FormatoMoneda(decimal monto)
@@ -139,7 +140,6 @@ else
 
     private async Task DesarchivarFactura(FacturaModel f)
     {
-       
         await ServicioFacturas.CambiarEstadoArchivo(f.Id, false);
         await CargarFacturas();
     }
@@ -153,6 +153,7 @@ else
 
     private void MenuPrincipal()
     {
-        Navegacion.NavigateTo("/ListaFacturas");
+    
+        Navegacion.NavigateTo("/");
     }
 }
