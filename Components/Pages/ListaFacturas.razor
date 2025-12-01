@@ -50,14 +50,20 @@
                 @foreach (var f in facturasFiltradas)
                 {
                     <tr>
-                        <td>
-                            <a href="/DetalleFactura/@f.Id" style="color: var(--md-sys-color-primary); font-weight: bold; text-decoration: none;">#@f.Id</a>
-                        </td>
+                        <td style="color: #888;">#@f.Id</td>
+
                         <td>@f.Cliente</td>
                         <td>@f.Fecha.ToShortDateString()</td>
                         <td style="text-align: right; font-weight: bold;">@FormatoMoneda(f.Total)</td>
+
                         <td style="text-align: right;">
                             <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="btn-icon" style="color: #2196F3;"
+                                        @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{f.Id}")'
+                                        title="Ver Detalles">
+                                    👁
+                                </button>
+
                                 <button class="btn-icon" style="color: #666;" @onclick="() => ArchivarFactura(f)" title="Archivar">📦</button>
 
                                 <button class="btn-icon text-primary" @onclick='() => Navegacion.NavigateTo($"/Facturas/{f.Id}")' title="Editar">✎</button>
