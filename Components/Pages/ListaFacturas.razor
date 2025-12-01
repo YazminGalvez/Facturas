@@ -14,9 +14,6 @@
         <button @onclick='() => Navegacion.NavigateTo("/Facturas")' class="btn-m3">
             + Nueva Factura
         </button>
-        <button @onclick='() => Navegacion.NavigateTo("/FacturasArchivadas")' class="btn-m3 btn-m3-tonal" title="Ver Baúl">
-            📦 Archivo
-        </button>
         <button @onclick='() => Navegacion.NavigateTo("/ReporteSat")' class="btn-m3 btn-m3-tonal">
             Ver Reportes
         </button>
@@ -118,14 +115,13 @@
     }
 
     private async Task ArchivarFactura(FacturaModel f)
-    { 
+    {
         await ServicioFacturas.CambiarEstadoArchivo(f.Id, true);
         await CargarDatos();
     }
 
     private async Task EliminarFactura(FacturaModel f)
     {
-  
         bool confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar permanentemente la factura #{f.Id}?");
         if (confirmado)
         {
