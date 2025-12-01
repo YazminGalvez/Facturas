@@ -59,13 +59,14 @@ else if (reporte != null)
                         <th>Cliente</th>
                         <th>Fecha</th>
                         <th style="text-align: right;">Total</th>
+                        <th style="text-align: right;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (mes.Facturas.Count == 0)
                     {
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 20px; color: #999; font-style: italic;">
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #999; font-style: italic;">
                                 -- No hay facturas registradas en este mes --
                             </td>
                         </tr>
@@ -75,10 +76,19 @@ else if (reporte != null)
                         @foreach (var factura in mes.Facturas)
                         {
                             <tr>
-                                <td><a href="/DetalleFactura/@factura.Id">#@factura.Id</a></td>
+                                <td style="color: #888;">#@factura.Id</td>
+
                                 <td>@factura.Cliente</td>
                                 <td>@factura.Fecha.ToShortDateString()</td>
                                 <td style="text-align: right;">@FormatoMoneda(factura.Total)</td>
+
+                                <td style="text-align: right;">
+                                    <button class="btn-icon" style="color: #2196F3;"
+                                            @onclick='() => Navegacion.NavigateTo($"/DetalleFactura/{factura.Id}")'
+                                            title="Ver Detalles">
+                                        👁️
+                                    </button>
+                                </td>
                             </tr>
                         }
                     }
